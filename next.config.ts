@@ -202,6 +202,14 @@ export default withNextIntl({
     ignoreBuildErrors: true,
   },
   devIndicators: false,
+  /**
+   * Turbopack workspace root 修复：
+   * 显式指定 root 为项目目录，防止 Turbopack 向上扫描到
+   * /Users/alex/package-lock.json 后误判 workspace root。
+   */
+  turbopack: {
+    root: process.cwd(),
+  },
   async headers() {
     return headers;
   },
@@ -223,4 +231,8 @@ export default withNextIntl({
   },
 });
 
-initOpenNextCloudflareForDev();
+// 仅在非 Turbopack 模式下初始化 OpenNext Cloudflare Dev
+// Turbopack + OpenNext 同时使用会导致 React 多实例冲突
+if (!process.env.TURBOPACK) {
+  initOpenNextCloudflareForDev();
+}

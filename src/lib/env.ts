@@ -2,11 +2,10 @@
  * 环境变量访问工具，兼容 CF Workers + Node.js
  */
 export function getEnv(key: string, defaultValue?: string): string {
-  // Node.js 环境 - 检查 key 是否存在（包括空字符串）
-  if (typeof process !== 'undefined' && process.env && Object.prototype.hasOwnProperty.call(process.env, key)) {
-    const val = process.env[key] as string;
-    if (val || defaultValue === undefined) return val;
-    return defaultValue;
+  // Node.js 环境 - 直接取值（兼容 Next.js DefinePlugin 和内联替换）
+  if (typeof process !== 'undefined' && process.env) {
+    const val = process.env[key] as string | undefined;
+    if (val !== undefined) return val;
   }
   // Cloudflare Workers 环境 - env 通过全局变量注入
   try {
@@ -35,7 +34,7 @@ export const getEnvString = getEnv;
 export function getBoolEnv(key: string, defaultValue = false): boolean {
   try {
     const value = getEnv(key, defaultValue !== undefined ? String(defaultValue) : undefined);
-    return value === 'true' || value === '1' || !!value;
+    return value === 'true' || value === '1';
   } catch {
     return defaultValue;
   }

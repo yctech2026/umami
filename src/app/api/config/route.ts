@@ -1,5 +1,6 @@
 import { getEnv, getBoolEnv } from '@/lib/env';
 import { parseRequest } from '@/lib/request';
+import { CURRENT_VERSION } from '@/lib/constants';
 import { json } from '@/lib/response';
 
 export async function GET(request: Request) {
@@ -18,6 +19,6 @@ export async function GET(request: Request) {
     telemetryDisabled: getBoolEnv('DISABLE_TELEMETRY'),
     trackerScriptName: getEnv('TRACKER_SCRIPT_NAME', ''),
     updatesDisabled: getBoolEnv('DISABLE_UPDATES'),
-    currentVersion: getBoolEnv('currentVersion'),
+    currentVersion: CURRENT_VERSION,
   });
 }
