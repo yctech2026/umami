@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/send/route';
-import type { Link } from '@/generated/prisma/client';
+import type { Link } from '@/lib/drizzle-types';
 import redis from '@/lib/redis';
 import { notFound } from '@/lib/response';
 import { findLink } from '@/queries/prisma';

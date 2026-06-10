@@ -1,9 +1,19 @@
-import type { Prisma } from '@/generated/prisma/client';
+import { eq, and, or, like, count } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { QueryFilters } from '@/lib/types';
 
-export async function findPixel(criteria: Prisma.PixelFindUniqueArgs) {
-  return prisma.client.pixel.findUnique(criteria);
+const db = prisma.client;
+
+export async function findPixel(criteria: { where?: { id?: string; slug?: string } }) {
+  const { where } = criteria;
+  if (!where) return null;
+
+  const conditions: any[] = [];
+  if (where.id) conditions.push(eq(schema.pixel.pixelId, where.id));
+  if (where.slug) conditions.push(eq(schema.pixel.slug, where.slug));
+
+  return db.select().from(schema.pixel).where(and(...conditions)).get();
 }
 
 export async function getPixel(pixelId: string) {
@@ -14,13 +24,26 @@ export async function getPixel(pixelId: string) {
   });
 }
 
-export async function getPixels(criteria: Prisma.PixelFindManyArgs, filters: QueryFilters = {}) {
+export async function getPixels(criteria: any, filters: QueryFilters = {}) {
   const { search } = filters;
 
-  const where: Prisma.PixelWhereInput = {
-    ...criteria.where,
-    ...prisma.getSearchParameters(search, [{ name: 'contains' }, { slug: 'contains' }]),
-  };
+  const conditions: any[] = [];
+
+  if (criteria?.where) {
+    if (criteria.where.userId) conditions.push(eq(schema.pixel.userId, criteria.where.userId));
+    if (criteria.where.teamId) conditions.push(eq(schema.pixel.teamId, criteria.where.teamId));
+  }
+
+  if (search) {
+    conditions.push(
+      or(
+        like(schema.pixel.name, `%${search}%`),
+        like(schema.pixel.slug, `%${search}%`),
+      ),
+    );
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   return prisma.pagedQuery('pixel', { ...criteria, where }, filters);
 }
@@ -47,14 +70,23 @@ export async function getTeamPixels(teamId: string, filters?: QueryFilters) {
   );
 }
 
-export async function createPixel(data: Prisma.PixelUncheckedCreateInput) {
-  return prisma.client.pixel.create({ data });
+export async function createPixel(data: any) {
+  return db.insert(schema.pixel).values(data).returning().all().then(r => r[0]);
 }
 
 export async function updatePixel(pixelId: string, data: any) {
-  return prisma.client.pixel.update({ where: { id: pixelId }, data });
+  return db
+    .update(schema.pixel)
+    .set(data)
+    .where(eq(schema.pixel.pixelId, pixelId))
+    .returning()
+    .get();
 }
 
 export async function deletePixel(pixelId: string) {
-  return prisma.client.pixel.delete({ where: { id: pixelId } });
+  return db
+    .delete(schema.pixel)
+    .where(eq(schema.pixel.pixelId, pixelId))
+    .returning()
+    .get();
 }

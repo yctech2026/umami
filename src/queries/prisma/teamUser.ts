@@ -1,21 +1,26 @@
-import { Prisma } from '@/generated/prisma/client';
+import type { Prisma } from '@/lib/drizzle-types';
 import { uuid } from '@/lib/crypto';
+import { eq, and } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { QueryFilters } from '@/lib/types';
 
-import TeamUserFindManyArgs = Prisma.TeamUserFindManyArgs;
+type TeamUserFindManyArgs = Prisma.TeamUserFindManyArgs;
 
 export async function findTeamUser(criteria: Prisma.TeamUserFindUniqueArgs) {
-  return prisma.client.teamUser.findUnique(criteria);
+  return prisma.client
+    .select()
+    .from(schema.teamUser)
+    .where(eq(schema.teamUser.teamUserId, criteria.where.id))
+    .get();
 }
 
 export async function getTeamUser(teamId: string, userId: string) {
-  return prisma.client.teamUser.findFirst({
-    where: {
-      teamId,
-      userId,
-    },
-  });
+  return prisma.client
+    .select()
+    .from(schema.teamUser)
+    .where(and(eq(schema.teamUser.teamId, teamId), eq(schema.teamUser.userId, userId)))
+    .get();
 }
 
 export async function getTeamUsers(criteria: TeamUserFindManyArgs, filters?: QueryFilters) {
@@ -37,30 +42,32 @@ export async function getTeamUsers(criteria: TeamUserFindManyArgs, filters?: Que
 }
 
 export async function createTeamUser(userId: string, teamId: string, role: string) {
-  return prisma.client.teamUser.create({
-    data: {
-      id: uuid(),
+  return prisma.client
+    .insert(schema.teamUser)
+    .values({
+      teamUserId: uuid(),
       userId,
       teamId,
       role,
-    },
-  });
+    })
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function updateTeamUser(teamUserId: string, data: Prisma.TeamUserUpdateInput) {
-  return prisma.client.teamUser.update({
-    where: {
-      id: teamUserId,
-    },
-    data,
-  });
+  return prisma.client
+    .update(schema.teamUser)
+    .set(data)
+    .where(eq(schema.teamUser.teamUserId, teamUserId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function deleteTeamUser(teamId: string, userId: string) {
-  return prisma.client.teamUser.deleteMany({
-    where: {
-      teamId,
-      userId,
-    },
-  });
+  return prisma.client
+    .delete(schema.teamUser)
+    .where(and(eq(schema.teamUser.teamId, teamId), eq(schema.teamUser.userId, userId)))
+    .run();
 }

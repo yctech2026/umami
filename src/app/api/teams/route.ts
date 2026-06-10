@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getBoolEnv } from '@/lib/env';
 import { uuid } from '@/lib/crypto';
 import { getRandomChars } from '@/lib/generate';
 import { fetchAccount } from '@/lib/load';
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     teamOwnerId,
   );
 
-  if (process.env.CLOUD_MODE && redis.enabled) {
+  if (getBoolEnv('CLOUD_MODE') && redis.enabled) {
     const account = await fetchAccount(teamOwnerId);
 
     if (account) {

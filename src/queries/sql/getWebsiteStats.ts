@@ -40,11 +40,11 @@ async function relationalQuery(
   return rawQuery(
     `
     select
-      cast(coalesce(sum(t.c), 0) as bigint) as "pageviews",
+      cast(coalesce(sum(t.c), 0) as INTEGER) as "pageviews",
       count(distinct t.session_id) as "visitors",
       count(distinct t.visit_id) as "visits",
       ${bounceQuery} as "bounces",
-      cast(coalesce(sum(${getTimestampDiffSQL('t.min_time', 't.max_time')}), 0) as bigint) as "totaltime"
+      cast(coalesce(sum(${getTimestampDiffSQL('t.min_time', 't.max_time')}), 0) as INTEGER) as "totaltime"
     from (
       select
         website_event.session_id,
@@ -56,7 +56,7 @@ async function relationalQuery(
       ${cohortQuery}
       ${excludeBounceQuery}
       ${joinSessionQuery}  
-      where website_event.website_id = {{websiteId::uuid}}
+      where website_event.website_id = {{websiteId}}
         and website_event.created_at between {{startDate}} and {{endDate}}
         and website_event.event_type NOT IN (2, 5)
         ${filterQuery}

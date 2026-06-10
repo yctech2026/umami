@@ -1,13 +1,20 @@
-import { Prisma, type Team } from '@/generated/prisma/client';
+import type { Prisma, Team } from '@/lib/drizzle-types';
+import { getBoolEnv } from '@/lib/env';
 import { ROLES } from '@/lib/constants';
 import { uuid } from '@/lib/crypto';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { PageResult, QueryFilters } from '@/lib/types';
 
-import TeamFindManyArgs = Prisma.TeamFindManyArgs;
+type TeamFindManyArgs = Prisma.TeamFindManyArgs;
 
 export async function findTeam(criteria: Prisma.TeamFindUniqueArgs): Promise<Team> {
-  return prisma.client.team.findUnique(criteria);
+  return prisma.client
+    .select()
+    .from(schema.team)
+    .where(eq(schema.team.teamId, criteria.where.id))
+    .get();
 }
 
 export async function getTeam(
@@ -16,12 +23,22 @@ export async function getTeam(
 ): Promise<Team> {
   const { includeMembers } = options;
 
-  return findTeam({
-    where: {
-      id: teamId,
-    },
-    ...(includeMembers && { include: { members: true } }),
-  });
+  const team = await prisma.client
+    .select()
+    .from(schema.team)
+    .where(eq(schema.team.teamId, teamId))
+    .get();
+
+  if (!team) return null;
+
+  if (includeMembers) {
+    (team as any).members = await prisma.client
+      .select()
+      .from(schema.teamUser)
+      .where(eq(schema.teamUser.teamId, teamId));
+  }
+
+  return team;
 }
 
 export async function getTeams(
@@ -85,88 +102,81 @@ export async function getUserTeams(userId: string, filters: QueryFilters = {}) {
 }
 
 export async function getAllUserTeams(userId: string) {
-  return prisma.client.team.findMany({
-    where: {
-      deletedAt: null,
-      members: {
-        some: { userId },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true,
-    },
-  });
+  // Step 1: 查出 user 所属的所有 teamId
+  const userTeamRows = await prisma.client
+    .select({ teamId: schema.teamUser.teamId })
+    .from(schema.teamUser)
+    .where(eq(schema.teamUser.userId, userId));
+
+  const teamIds = userTeamRows.map(r => r.teamId);
+
+  if (teamIds.length === 0) return [];
+
+  // Step 2: 查出这些 team 的详细信息
+  return prisma.client
+    .select({
+      teamId: schema.team.teamId,
+      name: schema.team.name,
+      logoUrl: schema.team.logoUrl,
+    })
+    .from(schema.team)
+    .where(and(isNull(schema.team.deletedAt), inArray(schema.team.teamId, teamIds)));
 }
 
 export async function getTeamOwner(teamId: string) {
-  return prisma.client.teamUser.findFirst({
-    where: { teamId, role: ROLES.teamOwner },
-    select: { userId: true },
-  });
+  return prisma.client
+    .select({ userId: schema.teamUser.userId })
+    .from(schema.teamUser)
+    .where(and(eq(schema.teamUser.teamId, teamId), eq(schema.teamUser.role, ROLES.teamOwner)))
+    .get();
 }
 
 export async function createTeam(data: Prisma.TeamCreateInput, userId: string): Promise<any> {
   const { id } = data;
-  const { client, transaction } = prisma;
 
-  return transaction([
-    client.team.create({
-      data,
+  return prisma.transaction([
+    prisma.client.insert(schema.team).values({
+      teamId: id,
+      name: data.name,
+      accessCode: data.accessCode,
+      logoUrl: data.logoUrl,
     }),
-    client.teamUser.create({
-      data: {
-        id: uuid(),
-        teamId: id,
-        userId,
-        role: ROLES.teamOwner,
-      },
+    prisma.client.insert(schema.teamUser).values({
+      teamUserId: uuid(),
+      teamId: id,
+      userId,
+      role: ROLES.teamOwner,
     }),
   ]);
 }
 
 export async function updateTeam(teamId: string, data: Prisma.TeamUpdateInput): Promise<Team> {
-  const { client } = prisma;
-
-  return client.team.update({
-    where: {
-      id: teamId,
-    },
-    data: {
+  return prisma.client
+    .update(schema.team)
+    .set({
       ...data,
       updatedAt: new Date(),
-    },
-  });
+    })
+    .where(eq(schema.team.teamId, teamId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function deleteTeam(teamId: string) {
-  const { client, transaction } = prisma;
-  const cloudMode = !!process.env.CLOUD_MODE;
+  const cloudMode = getBoolEnv('CLOUD_MODE');
 
   if (cloudMode) {
-    return transaction([
-      client.team.update({
-        data: {
-          deletedAt: new Date(),
-        },
-        where: {
-          id: teamId,
-        },
-      }),
+    return prisma.transaction([
+      prisma.client
+        .update(schema.team)
+        .set({ deletedAt: new Date() })
+        .where(eq(schema.team.teamId, teamId)),
     ]);
   }
 
-  return transaction([
-    client.teamUser.deleteMany({
-      where: {
-        teamId,
-      },
-    }),
-    client.team.delete({
-      where: {
-        id: teamId,
-      },
-    }),
+  return prisma.transaction([
+    prisma.client.delete(schema.teamUser).where(eq(schema.teamUser.teamId, teamId)),
+    prisma.client.delete(schema.team).where(eq(schema.team.teamId, teamId)),
   ]);
 }

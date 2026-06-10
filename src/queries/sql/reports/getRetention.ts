@@ -52,7 +52,7 @@ async function relationalQuery(
       from website_event
       ${cohortQuery}
       ${joinSessionQuery}
-      where website_event.website_id = {{websiteId::uuid}}
+      where website_event.website_id = {{websiteId}}
         and website_event.created_at between {{startDate}} and {{endDate}}
         ${filterQuery}
       group by website_event.session_id
@@ -64,7 +64,7 @@ async function relationalQuery(
       from website_event
       join cohort_items
       on website_event.session_id = cohort_items.session_id
-      where website_id = {{websiteId::uuid}}
+      where website_id = {{websiteId}}
           and created_at between {{startDate}} and {{endDate}}
           
       ),

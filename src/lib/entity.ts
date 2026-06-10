@@ -1,4 +1,4 @@
-import type { Board, Link, Pixel, Website } from '@/generated/prisma/client';
+import type { Board, Link, Pixel, Website } from '@/lib/drizzle-types';
 import { getBoard, getLink, getPixel, getWebsite } from '@/queries/prisma';
 
 export async function getEntity(entityId: string): Promise<Website | Link | Pixel | Board | null> {

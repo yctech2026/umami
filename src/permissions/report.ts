@@ -1,4 +1,4 @@
-import type { Report } from '@/generated/prisma/client';
+import type { Report } from '@/lib/drizzle-types';
 import type { Auth } from '@/lib/types';
 import { canDeleteWebsite, canUpdateWebsite, canViewWebsite } from './website';
 

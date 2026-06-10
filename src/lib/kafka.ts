@@ -1,111 +1,40 @@
-import type * as tls from 'node:tls';
 import debug from 'debug';
-import { Kafka, logLevel, type Producer, type RecordMetadata, type SASLOptions } from 'kafkajs';
-import { serializeError } from 'serialize-error';
-import { KAFKA, KAFKA_PRODUCER } from '@/lib/db';
 
 const log = debug('umami:kafka');
-const CONNECT_TIMEOUT = 5000;
-const SEND_TIMEOUT = 3000;
-const ACKS = 1;
 
-let kafka: Kafka;
-let producer: Producer;
-const enabled = Boolean(process.env.KAFKA_URL && process.env.KAFKA_BROKER);
+// 在 Cloudflare Workers 环境下，Kafka TCP 长连接不可用
+// 此处保留接口但使用空实现存根
+
+const enabled = false;
 
 function getClient() {
-  const { username, password } = new URL(process.env.KAFKA_URL);
-  const brokers = process.env.KAFKA_BROKER.split(',');
-  const mechanism =
-    (process.env.KAFKA_SASL_MECHANISM as 'plain' | 'scram-sha-256' | 'scram-sha-512') || 'plain';
-
-  const ssl: { ssl?: tls.ConnectionOptions | boolean; sasl?: SASLOptions } =
-    username && password
-      ? {
-          ssl: {
-            rejectUnauthorized: false,
-          },
-          sasl: {
-            mechanism,
-            username,
-            password,
-          },
-        }
-      : {};
-
-  const client: Kafka = new Kafka({
-    clientId: 'umami',
-    brokers: brokers,
-    connectionTimeout: CONNECT_TIMEOUT,
-    logLevel: logLevel.ERROR,
-    ...ssl,
-  });
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis[KAFKA] = client;
-  }
-
-  log('Kafka initialized');
-
-  return client;
+  console.warn('[kafka] Kafka is disabled in Cloudflare Workers environment (TCP not supported)');
+  return null;
 }
 
-async function getProducer(): Promise<Producer> {
-  const producer = kafka.producer();
-  await producer.connect();
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis[KAFKA_PRODUCER] = producer;
-  }
-
-  log('Kafka producer initialized');
-
-  return producer;
+async function getProducer() {
+  console.warn('[kafka] Kafka is disabled in Cloudflare Workers environment (TCP not supported)');
+  return null;
 }
 
 async function sendMessage(
   topic: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   message: Record<string, string | number> | Record<string, string | number>[],
-): Promise<RecordMetadata[]> {
-  try {
-    await connect();
-
-    return producer.send({
-      topic,
-      messages: Array.isArray(message)
-        ? message.map(a => {
-            return { value: JSON.stringify(a) };
-          })
-        : [
-            {
-              value: JSON.stringify(message),
-            },
-          ],
-      timeout: SEND_TIMEOUT,
-      acks: ACKS,
-    });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('KAFKA ERROR:', serializeError(e));
-  }
+): Promise<void> {
+  console.warn(`[kafka] Dropped message to topic "${topic}": Kafka is disabled in Cloudflare Workers`);
+  return Promise.resolve();
 }
 
-async function connect(): Promise<Kafka> {
-  if (!kafka) {
-    kafka = process.env.KAFKA_URL && process.env.KAFKA_BROKER && (globalThis[KAFKA] || getClient());
-
-    if (kafka) {
-      producer = globalThis[KAFKA_PRODUCER] || (await getProducer());
-    }
-  }
-
-  return kafka;
+async function connect() {
+  console.warn('[kafka] Kafka is disabled in Cloudflare Workers environment (TCP not supported)');
+  return null;
 }
 
 export default {
   enabled,
-  client: kafka,
-  producer,
+  client: null,
+  producer: null,
   log,
   connect,
   sendMessage,

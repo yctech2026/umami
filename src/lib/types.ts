@@ -1,5 +1,5 @@
 import type { UseQueryOptions } from '@tanstack/react-query';
-import type { Board as PrismaBoard } from '@/generated/prisma/client';
+import type { Board as PrismaBoard } from '@/lib/drizzle-types';
 import type { DATA_TYPE, OPERATORS, ROLES } from './constants';
 import type { TIME_UNIT } from './date';
 

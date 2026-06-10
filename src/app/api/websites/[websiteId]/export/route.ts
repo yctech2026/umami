@@ -55,8 +55,12 @@ export async function GET(
   zip.file('devices.csv', parse(devices));
   zip.file('countries.csv', parse(countries));
 
-  const content = await zip.generateAsync({ type: 'nodebuffer' });
-  const base64 = content.toString('base64');
+  const content = await zip.generateAsync({ type: 'uint8array' });
+  let binary = '';
+  for (let i = 0; i < content.length; i++) {
+    binary += String.fromCharCode(content[i]);
+  }
+  const base64 = btoa(binary);
 
   return json({ zip: base64 });
 }

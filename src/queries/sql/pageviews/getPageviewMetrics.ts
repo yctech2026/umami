@@ -52,19 +52,21 @@ async function relationalQuery(
   }
 
   if (type === 'entry' || type === 'exit') {
-    const order = type === 'entry' ? 'asc' : 'desc';
+    const order = type === 'entry' ? 'ASC' : 'DESC';
     column = `x.${column}`;
 
     entryExitQuery = `
       join (
-        select distinct on (visit_id)
-          visit_id,
-          url_path
-        from website_event
-        where website_event.website_id = {{websiteId::uuid}}
-          and website_event.created_at between {{startDate}} and {{endDate}}
-          and website_event.event_type NOT IN (2, 5)
-        order by visit_id, created_at ${order}
+        select visit_id, url_path
+        from (
+          select visit_id, url_path,
+            row_number() over (partition by visit_id order by created_at ${order}) as rn
+          from website_event
+          where website_event.website_id = {{websiteId}}
+            and website_event.created_at between {{startDate}} and {{endDate}}
+            and website_event.event_type NOT IN (2, 5)
+        )
+        where rn = 1
       ) x
       on x.visit_id = website_event.visit_id
     `;
@@ -79,7 +81,7 @@ async function relationalQuery(
     ${excludeBounceQuery}
     ${joinSessionQuery}
     ${entryExitQuery}
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       and website_event.event_type NOT IN (2, 5)
       and ${column} != ''

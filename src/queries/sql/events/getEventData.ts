@@ -29,11 +29,11 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
     select website_event.event_id
     from website_event
     join event_data on event_data.website_event_id = website_event.event_id
-      and event_data.website_id = {{websiteId::uuid}}
+      and event_data.website_id = {{websiteId}}
       and event_data.created_at between {{startDate}} and {{endDate}}
     ${cohortQuery}
     ${joinSessionQuery}
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       ${filterQuery}
     group by website_event.event_id
@@ -63,10 +63,10 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
       event_data.created_at as "createdAt"
     from event_data
     join website_event on website_event.event_id = event_data.website_event_id
-      and website_event.website_id = {{websiteId::uuid}}
+      and website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
     join paged_events on paged_events.event_id = event_data.website_event_id
-    where event_data.website_id = {{websiteId::uuid}}
+    where event_data.website_id = {{websiteId}}
       and event_data.created_at between {{startDate}} and {{endDate}}
     order by event_data.created_at desc
     `,

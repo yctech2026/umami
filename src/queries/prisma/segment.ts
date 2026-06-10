@@ -1,42 +1,93 @@
-import type { Prisma } from '@/generated/prisma/client';
-import prisma from '@/lib/prisma';
+import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import type { QueryFilters } from '@/lib/types';
+import { getDrizzleClient } from '@/lib/drizzle-client';
 
-async function findSegment(criteria: Prisma.SegmentFindUniqueArgs) {
-  return prisma.client.segment.findUnique(criteria);
+const DEFAULT_PAGE_SIZE = 50;
+
+function getDb() {
+  return getDrizzleClient();
 }
 
 export async function getSegment(segmentId: string) {
-  return findSegment({
-    where: {
-      id: segmentId,
-    },
-  });
+  return getDb()
+    .select()
+    .from(schema.segment)
+    .where(eq(schema.segment.segmentId, segmentId))
+    .get();
 }
 
-export async function getSegments(criteria: Prisma.SegmentFindManyArgs, filters: QueryFilters) {
-  const { search } = filters;
-  const { getSearchParameters, pagedQuery } = prisma;
+export async function getSegments(
+  criteria: Record<string, any>,
+  filters: QueryFilters,
+) {
+  const { search, page = 1, pageSize, orderBy, sortDescending = false } = filters;
+  const size = +pageSize || DEFAULT_PAGE_SIZE;
+  const offset = +size * (+page - 1);
 
-  const where: Prisma.SegmentWhereInput = {
-    ...criteria.where,
-    ...getSearchParameters(search, [
-      {
-        name: 'contains',
-      },
-    ]),
+  const conditions: any[] = [];
+
+  if (criteria.where) {
+    const { websiteId, type, id, segmentId } = criteria.where;
+    if (websiteId) conditions.push(eq(schema.segment.websiteId, websiteId));
+    if (type) conditions.push(eq(schema.segment.type, type));
+    if (id) conditions.push(eq(schema.segment.segmentId, id));
+    if (segmentId) conditions.push(eq(schema.segment.segmentId, segmentId));
+  }
+
+  if (search) {
+    conditions.push(like(schema.segment.name, `%${search}%`));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  let query = getDb().select().from(schema.segment);
+  if (whereClause) query = query.where(whereClause);
+
+  if (orderBy) {
+    const dir = sortDescending ? desc : asc;
+    const col = (schema.segment as any)[orderBy];
+    if (col) query = query.orderBy(dir(col));
+  }
+
+  if (size > 0) {
+    query = query.limit(size).offset(offset);
+  }
+
+  const data = await query;
+
+  let countQuery = getDb().select({ count: count() }).from(schema.segment);
+  if (whereClause) countQuery = countQuery.where(whereClause);
+  const countResult = await countQuery.get();
+
+  return {
+    data,
+    count: Number(countResult?.count ?? 0),
+    page: +page,
+    pageSize: size,
+    orderBy,
+    search,
   };
-
-  return pagedQuery('segment', { ...criteria, where }, filters);
 }
 
 export async function getWebsiteSegment(websiteId: string, segmentId: string) {
-  return prisma.client.segment.findFirst({
-    where: { id: segmentId, websiteId },
-  });
+  return getDb()
+    .select()
+    .from(schema.segment)
+    .where(
+      and(
+        eq(schema.segment.segmentId, segmentId),
+        eq(schema.segment.websiteId, websiteId),
+      ),
+    )
+    .get();
 }
 
-export async function getWebsiteSegments(websiteId: string, type: string, filters?: QueryFilters) {
+export async function getWebsiteSegments(
+  websiteId: string,
+  type: string,
+  filters?: QueryFilters,
+) {
   return getSegments(
     {
       where: {
@@ -48,14 +99,30 @@ export async function getWebsiteSegments(websiteId: string, type: string, filter
   );
 }
 
-export async function createSegment(data: Prisma.SegmentUncheckedCreateInput) {
-  return prisma.client.segment.create({ data });
+export async function createSegment(data: Record<string, any>) {
+  return getDb()
+    .insert(schema.segment)
+    .values(data)
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
-export async function updateSegment(SegmentId: string, data: Prisma.SegmentUpdateInput) {
-  return prisma.client.segment.update({ where: { id: SegmentId }, data });
+export async function updateSegment(segmentId: string, data: Record<string, any>) {
+  return getDb()
+    .update(schema.segment)
+    .set(data)
+    .where(eq(schema.segment.segmentId, segmentId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
-export async function deleteSegment(SegmentId: string) {
-  return prisma.client.segment.delete({ where: { id: SegmentId } });
+export async function deleteSegment(segmentId: string) {
+  return getDb()
+    .delete(schema.segment)
+    .where(eq(schema.segment.segmentId, segmentId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }

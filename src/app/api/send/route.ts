@@ -2,6 +2,7 @@ import { startOfHour } from 'date-fns';
 import { isbot } from 'isbot';
 import { serializeError } from 'serialize-error';
 import { z } from 'zod';
+import { getBoolEnv, getEnv } from '@/lib/env';
 import clickhouse from '@/lib/clickhouse';
 import { COLLECTION_TYPE, EVENT_TYPE } from '@/lib/constants';
 import { getSalt, hash, secret, uuid } from '@/lib/crypto';
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       const cacheHeader = request.headers.get('x-umami-cache');
 
       if (cacheHeader) {
-        const result = await parseToken(cacheHeader, secret());
+        const result = await parseToken(cacheHeader, await secret());
 
         if (result) {
           cache = result;
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
     );
 
     // Bot check
-    if (!process.env.DISABLE_BOT_CHECK && isbot(userAgent)) {
+    if (!getBoolEnv('DISABLE_BOT_CHECK') && isbot(userAgent)) {
       return json({ beep: 'boop' });
     }
 
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
     const createdAt = timestamp ? new Date(timestamp * 1000) : new Date();
     const now = Math.floor(Date.now() / 1000);
 
-    const saltRotation = process.env.SALT_ROTATION || 'month';
+    const saltRotation = getEnv('SALT_ROTATION', 'month');
     const sessionSalt = getSalt(saltRotation, createdAt);
     const visitSalt = hash(startOfHour(createdAt).toUTCString());
 
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
       const lifatid = currentUrl.searchParams.get('li_fat_id');
       const twclid = currentUrl.searchParams.get('twclid');
 
-      if (process.env.REMOVE_TRAILING_SLASH) {
+      if (getBoolEnv('REMOVE_TRAILING_SLASH')) {
         urlPath = urlPath.replace(/\/(?=(#.*)?$)/, '');
       }
 
@@ -308,7 +309,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const token = createToken({ websiteId, sessionId, visitId, iat }, secret());
+    const token = await createToken({ websiteId, sessionId, visitId, iat }, await secret());
 
     return json({ cache: token, sessionId, visitId });
   } catch (e) {

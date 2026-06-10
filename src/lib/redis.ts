@@ -1,81 +1,73 @@
+import { getBoolEnv, getEnv } from '@/lib/env';
 import debug from 'debug';
-import { createClient, type RedisClientType } from 'redis';
 
 const log = debug('umami:redis-client');
+
+// Cloudflare Workers 环境下用内存缓存替代 Redis（TCP 不可用）
+const cache = new Map<string, { value: any; expires: number }>();
 
 export const DELETED = '__DELETED__';
 export const DEFAULT_TTL = 3600;
 
-const logError = (err: unknown) => log(err);
-
 class UmamiRedisClient {
   url: string;
-  client: RedisClientType;
   isConnected: boolean;
 
   constructor(url: string) {
-    const client = createClient({ url }).on('error', logError);
-
     this.url = url;
-    this.client = client as RedisClientType;
-    this.isConnected = false;
+    this.isConnected = true; // 内存缓存始终可用
   }
 
   async connect() {
-    if (!this.isConnected) {
-      this.isConnected = true;
-
-      await this.client.connect();
-
-      log('Redis connected');
-    }
+    // 内存缓存无需连接
+    this.isConnected = true;
   }
 
   async get(key: string) {
-    await this.connect();
-
-    const data = await this.client.get(key);
-
-    try {
-      return JSON.parse(data as string);
-    } catch {
+    const item = cache.get(key);
+    if (!item) return null;
+    if (item.expires !== Infinity && Date.now() > item.expires) {
+      cache.delete(key);
       return null;
     }
+    return item.value;
   }
 
   async set(key: string, value: any, time?: number) {
-    await this.connect();
-
     const ttl = time && time > 0 ? time : DEFAULT_TTL;
-
-    return this.client.set(key, JSON.stringify(value), { EX: ttl });
+    cache.set(key, {
+      value,
+      expires: ttl > 0 ? Date.now() + ttl * 1000 : Infinity,
+    });
   }
 
   async del(key: string) {
-    await this.connect();
-
-    return this.client.del(key);
+    cache.delete(key);
   }
 
   async incr(key: string) {
-    await this.connect();
-
-    return this.client.incr(key);
+    const item = cache.get(key);
+    const value = (item?.value as number) || 0;
+    const newValue = value + 1;
+    cache.set(key, {
+      value: newValue,
+      expires: item?.expires ?? Infinity,
+    });
+    return newValue;
   }
 
   async expire(key: string, seconds: number) {
-    await this.connect();
-
-    return this.client.expire(key, seconds);
+    const item = cache.get(key);
+    if (item) {
+      item.expires = Date.now() + seconds * 1000;
+    }
   }
 
   async rateLimit(key: string, limit: number, seconds: number): Promise<boolean> {
-    await this.connect();
-
-    const res = await this.client.incr(key);
+    const res = await this.incr(key);
 
     if (res === 1) {
-      await this.client.expire(key, seconds);
+      await this.expire(key, seconds);
     }
 
     return res >= limit;
@@ -103,45 +95,12 @@ class UmamiRedisClient {
 }
 
 const REDIS = 'redis';
-const enabled = !!process.env.REDIS_URL;
+const enabled = !!getEnv('REDIS_URL', '');
 
 function getClient() {
-  const redis = new UmamiRedisClient(process.env.REDIS_URL);
-  const originalConnect = redis.connect.bind(redis);
-  let connectPromise: Promise<void> | null = null;
+  const redis = new UmamiRedisClient(getEnv('REDIS_URL', ''));
 
-  const resetConnectionState = () => {
-    redis.isConnected = false;
-  };
-
-  redis.client.on('end', resetConnectionState);
-  redis.client.on('reconnecting', resetConnectionState);
-
-  redis.connect = async () => {
-    if (redis.client.isReady || redis.client.isOpen) {
-      redis.isConnected = true;
-      return;
-    }
-
-    if (connectPromise) {
-      return connectPromise;
-    }
-
-    connectPromise = (async () => {
-      try {
-        await originalConnect();
-      } catch (error) {
-        redis.isConnected = false;
-        throw error;
-      } finally {
-        connectPromise = null;
-      }
-    })();
-
-    return connectPromise;
-  };
-
-  if (process.env.NODE_ENV !== 'production') {
+  if (getEnv('NODE_ENV', 'development') !== 'production') {
     globalThis[REDIS] = redis;
   }
 

@@ -23,11 +23,11 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
   });
 
   const searchQuery = search
-    ? `and (distinct_id ilike {{search}}
-           or city ilike {{search}}
-           or browser ilike {{search}}
-           or os ilike {{search}}
-           or device ilike {{search}})`
+    ? `and (distinct_id LIKE {{search}}
+           or city LIKE {{search}}
+           or browser LIKE {{search}}
+           or os LIKE {{search}}
+           or device LIKE {{search}})`
     : '';
 
   return pagedRawQuery(
@@ -54,7 +54,7 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
     ${cohortQuery}
     join session on session.session_id = website_event.session_id
       and session.website_id = website_event.website_id
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
     ${dateQuery}
     ${filterQuery}
     ${searchQuery}

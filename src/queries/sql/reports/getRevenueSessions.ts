@@ -25,10 +25,10 @@ async function relationalQuery(websiteId: string, currency: string, filters: Que
   });
 
   const searchQuery = search
-    ? `and (session.browser ilike {{search}}
-           or session.os ilike {{search}}
-           or session.device ilike {{search}}
-           or session.city ilike {{search}})`
+    ? `and (session.browser LIKE {{search}}
+           or session.os LIKE {{search}}
+           or session.device LIKE {{search}}
+           or session.city LIKE {{search}})`
     : '';
 
   return pagedRawQuery(
@@ -59,11 +59,11 @@ async function relationalQuery(websiteId: string, currency: string, filters: Que
     join (
       select distinct session_id
       from revenue
-      where website_id = {{websiteId::uuid}}
+      where website_id = {{websiteId}}
       and revenue.created_at between {{startDate}} and {{endDate}}
         and upper(currency) = {{currency}}
     ) rev on rev.session_id = website_event.session_id
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
     ${dateQuery}
     ${filterQuery}
     ${searchQuery}

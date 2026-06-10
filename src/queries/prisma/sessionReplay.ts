@@ -1,6 +1,10 @@
 import { uuid } from '@/lib/crypto';
+import { eq, and, like, desc, sql } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { QueryFilters } from '@/lib/types';
+
+const db = prisma.client;
 
 export interface CreateReplayChunkArgs {
   websiteId: string;
@@ -14,23 +18,24 @@ export interface CreateReplayChunkArgs {
 }
 
 export async function getReplayChunks(websiteId: string, visitId: string) {
-  return prisma.client.sessionReplay.findMany({
-    where: {
-      websiteId,
-      visitId,
-    },
-    orderBy: {
-      chunkIndex: 'asc',
-    },
-    select: {
-      events: true,
-      sessionId: true,
-      chunkIndex: true,
-      eventCount: true,
-      startedAt: true,
-      endedAt: true,
-    },
-  });
+  return db
+    .select({
+      events: schema.sessionReplay.events,
+      sessionId: schema.sessionReplay.sessionId,
+      chunkIndex: schema.sessionReplay.chunkIndex,
+      eventCount: schema.sessionReplay.eventCount,
+      startedAt: schema.sessionReplay.startedAt,
+      endedAt: schema.sessionReplay.endedAt,
+    })
+    .from(schema.sessionReplay)
+    .where(
+      and(
+        eq(schema.sessionReplay.websiteId, websiteId),
+        eq(schema.sessionReplay.visitId, visitId),
+      ),
+    )
+    .orderBy(schema.sessionReplay.chunkIndex)
+    .all();
 }
 
 export async function createReplayChunk({
@@ -43,8 +48,9 @@ export async function createReplayChunk({
   startedAt,
   endedAt,
 }: CreateReplayChunkArgs) {
-  return prisma.client.sessionReplay.create({
-    data: {
+  return db
+    .insert(schema.sessionReplay)
+    .values({
       id: uuid(),
       websiteId,
       sessionId,
@@ -54,58 +60,99 @@ export async function createReplayChunk({
       eventCount,
       startedAt,
       endedAt,
-    },
-  });
+    })
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function deleteReplaysByWebsite(websiteId: string) {
-  return prisma.client.sessionReplay.deleteMany({
-    where: { websiteId },
-  });
+  return db
+    .delete(schema.sessionReplay)
+    .where(eq(schema.sessionReplay.websiteId, websiteId))
+    .run();
 }
 
 export async function getReplaySaved(websiteId: string, visitId: string): Promise<boolean> {
-  const record = await prisma.client.sessionReplaySaved.findUnique({
-    where: { websiteId_visitId: { websiteId, visitId } },
-    select: { id: true },
-  });
-  return record !== null;
+  const record = await db
+    .select({ id: schema.sessionReplaySaved.id })
+    .from(schema.sessionReplaySaved)
+    .where(
+      and(
+        eq(schema.sessionReplaySaved.websiteId, websiteId),
+        eq(schema.sessionReplaySaved.visitId, visitId),
+      ),
+    )
+    .get();
+  return record !== undefined;
 }
 
 export async function createReplaySaved(websiteId: string, visitId: string, name: string) {
-  return prisma.client.sessionReplaySaved.create({
-    data: { id: uuid(), websiteId, visitId, name },
-  });
+  return db
+    .insert(schema.sessionReplaySaved)
+    .values({ id: uuid(), websiteId, visitId, name })
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function updateReplaySaved(websiteId: string, visitId: string, name: string) {
-  return prisma.client.sessionReplaySaved.updateMany({
-    where: { websiteId, visitId },
-    data: { name },
-  });
+  return db
+    .update(schema.sessionReplaySaved)
+    .set({ name })
+    .where(
+      and(
+        eq(schema.sessionReplaySaved.websiteId, websiteId),
+        eq(schema.sessionReplaySaved.visitId, visitId),
+      ),
+    )
+    .run();
 }
 
 export async function deleteReplaySaved(websiteId: string, visitId: string) {
-  return prisma.client.sessionReplaySaved.deleteMany({
-    where: { websiteId, visitId },
-  });
+  return db
+    .delete(schema.sessionReplaySaved)
+    .where(
+      and(
+        eq(schema.sessionReplaySaved.websiteId, websiteId),
+        eq(schema.sessionReplaySaved.visitId, visitId),
+      ),
+    )
+    .run();
 }
 
 export async function getSavedReplays(websiteId: string, filters: QueryFilters) {
-  const { search } = filters;
-  const { getSearchParameters, pagedQuery } = prisma;
+  const { search, page = 1, pageSize } = filters;
+  const size = +pageSize || 20;
+  const offset = +size * (+page - 1);
 
-  const where = {
-    websiteId,
-    ...getSearchParameters(search, [{ name: 'contains' }]),
+  const conditions = [eq(schema.sessionReplaySaved.websiteId, websiteId)];
+
+  if (search) {
+    conditions.push(like(schema.sessionReplaySaved.name, `%${search}%`));
+  }
+
+  const data = await db
+    .select()
+    .from(schema.sessionReplaySaved)
+    .where(and(...conditions))
+    .orderBy(desc(schema.sessionReplaySaved.createdAt))
+    .limit(size)
+    .offset(offset)
+    .all();
+
+  const countResult = await db
+    .select({ num: sql<number>`count(*)` })
+    .from(schema.sessionReplaySaved)
+    .where(and(...conditions))
+    .get();
+
+  return {
+    data,
+    count: countResult?.num ?? 0,
+    page: +page,
+    pageSize: size,
+    orderBy: 'createdAt',
+    search,
   };
-
-  return pagedQuery(
-    'sessionReplaySaved',
-    {
-      where,
-      orderBy: { createdAt: 'desc' },
-    },
-    filters,
-  );
 }

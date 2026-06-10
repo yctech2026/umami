@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { getBoolEnv } from '@/lib/env';
 import { LogoutPage } from './LogoutPage';
 
 export default function () {
-  if (process.env.DISABLE_LOGIN || process.env.CLOUD_MODE) {
+  if (getBoolEnv('DISABLE_LOGIN') || getBoolEnv('CLOUD_MODE')) {
     return null;
   }
 

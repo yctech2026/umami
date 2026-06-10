@@ -1,4 +1,6 @@
-export const CURRENT_VERSION = process.env.currentVersion;
+import { getEnvString } from '@/lib/env';
+
+export const CURRENT_VERSION = getEnvString('currentVersion');
 export const AUTH_TOKEN = 'umami.auth';
 export const LOCALE_CONFIG = 'umami.locale';
 export const TIMEZONE_CONFIG = 'umami.timezone';
@@ -203,6 +205,7 @@ export const ROLE_PERMISSIONS = {
   ],
   [ROLES.teamManager]: [
     PERMISSIONS.teamUpdate,
+    PERMISSIONS.teamDelete,
     PERMISSIONS.websiteCreate,
     PERMISSIONS.websiteUpdate,
     PERMISSIONS.websiteDelete,
@@ -491,6 +494,7 @@ export const ISO_COUNTRIES = {
   GUY: 'GY',
   HKG: 'HK',
   HMD: 'HM',
+  GND: 'GD',
   HND: 'HN',
   HRV: 'HR',
   HTI: 'HT',

@@ -40,7 +40,7 @@ async function relationalQuery(
     filterQuery || cohortQuery
       ? `join (select *
                from website_event
-               where website_id = {{websiteId::uuid}}
+               where website_id = {{websiteId}}
                   and created_at between {{startDate}} and {{endDate}}
                   and event_type = 2) website_event
         on website_event.website_id = revenue.website_id
@@ -59,7 +59,7 @@ async function relationalQuery(
     ${joinQuery}
     ${cohortQuery}
     ${joinSessionQuery}
-    where revenue.website_id = {{websiteId::uuid}}
+    where revenue.website_id = {{websiteId}}
       and revenue.created_at between {{startDate}} and {{endDate}}
       and upper(revenue.currency) = {{currency}}
       ${filterQuery}

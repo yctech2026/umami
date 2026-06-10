@@ -1,6 +1,6 @@
-import 'dotenv/config';
 import createNextIntlPlugin from 'next-intl/plugin';
 import pkg from './package.json' with { type: 'json' };
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -197,7 +197,7 @@ export default withNextIntl({
     selfRecord,
   },
   basePath,
-  output: 'standalone',
+  // output removed - Cloudflare OpenNext adapter handles deployment
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -222,3 +222,5 @@ export default withNextIntl({
     return [...redirects];
   },
 });
+
+initOpenNextCloudflareForDev();

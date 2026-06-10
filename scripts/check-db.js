@@ -1,10 +1,9 @@
+// This script checks the database connection. It is skipped for Cloudflare Workers builds (SQLite/D1).
 /* eslint-disable no-console */
 import 'dotenv/config';
 import { execSync } from 'node:child_process';
-import { PrismaPg } from '@prisma/adapter-pg';
 import chalk from 'chalk';
 import semver from 'semver';
-import { PrismaClient } from '../generated/prisma/client.js';
 
 const MIN_VERSION = '9.4.0';
 
@@ -12,6 +11,16 @@ if (process.env.SKIP_DB_CHECK) {
   console.log('Skipping database check.');
   process.exit(0);
 }
+
+// Skip if using SQLite (D1) - this is for Cloudflare Workers
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:')) {
+  console.log('SQLite/D1 provider detected, skipping database connection check.');
+  process.exit(0);
+}
+
+// Dynamic import to avoid loading Prisma adapters when not needed
+const { PrismaPg } = await import('@prisma/adapter-pg');
+const { PrismaClient } = await import('../generated/prisma/client.js');
 
 const url = new URL(process.env.DATABASE_URL);
 
@@ -23,11 +32,11 @@ const adapter = new PrismaPg(
 const prisma = new PrismaClient({ adapter });
 
 function success(msg) {
-  console.log(chalk.greenBright(`✓ ${msg}`));
+  console.log(chalk.greenBright(`\u2713 ${msg}`));
 }
 
 function error(msg) {
-  console.log(chalk.redBright(`✗ ${msg}`));
+  console.log(chalk.redBright(`\u2717 ${msg}`));
 }
 
 async function checkEnv() {

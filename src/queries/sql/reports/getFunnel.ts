@@ -72,10 +72,10 @@ async function relationalQuery(
         let val = f.value;
         if (f.operator === 'neq') op = '!=';
         else if (f.operator === 'c') {
-          op = 'ilike';
+          op = 'LIKE';
           val = `%${val}%`;
         } else if (f.operator === 'dnc') {
-          op = 'not ilike';
+          op = 'not LIKE';
           val = `%${val}%`;
         }
         extraParams[valParam] = val;
@@ -83,7 +83,7 @@ async function relationalQuery(
         return `and exists (
           select 1 from event_data _ed${stepIndex}_${fi}
           where _ed${stepIndex}_${fi}.website_event_id = ${eventAlias}.event_id
-            and _ed${stepIndex}_${fi}.website_id = {{websiteId::uuid}}
+            and _ed${stepIndex}_${fi}.website_id = {{websiteId}}
             and _ed${stepIndex}_${fi}.created_at between {{startDate}} and {{endDate}}
             and _ed${stepIndex}_${fi}.data_key = {{${keyParam}}}
             and case when _ed${stepIndex}_${fi}.data_type = 2 then replace(_ed${stepIndex}_${fi}.string_value, '.0000', '') else _ed${stepIndex}_${fi}.string_value end ${op} {{${valParam}}}
@@ -135,7 +135,7 @@ async function relationalQuery(
             from website_event
             ${cohortQuery}
             ${joinSessionQuery}
-            where website_event.website_id = {{websiteId::uuid}}
+            where website_event.website_id = {{websiteId}}
               and website_event.created_at between {{startDate}} and {{endDate}}
               and ${column} ${operator} {{${i}}}
               ${filterQuery}
@@ -148,7 +148,7 @@ async function relationalQuery(
             from level${i} l
             join website_event we
                 on l.session_id = we.session_id
-            where we.website_id = {{websiteId::uuid}}
+            where we.website_id = {{websiteId}}
                 and we.created_at between l.created_at and ${getAddIntervalQuery(
                   `l.created_at `,
                   `${window} minute`,

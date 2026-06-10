@@ -66,7 +66,7 @@ async function relationalQuery(
         select visit_id,
             ${aggregrate}(created_at) target_created_at
         from website_event
-        where website_event.website_id = {{websiteId::uuid}}
+        where website_event.website_id = {{websiteId}}
           and website_event.created_at between {{startDate}} and {{endDate}}
           and website_event.event_type NOT IN (2, 5)
         group by visit_id
@@ -98,7 +98,7 @@ async function relationalQuery(
       ${excludeBounceQuery}
       ${joinSessionQuery} 
       ${entryExitQuery} 
-      where website_event.website_id = {{websiteId::uuid}}
+      where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       and website_event.event_type NOT IN (2, 5)
         ${excludeDomain}
@@ -226,5 +226,5 @@ export function toPostgresGroupedReferrer(
 }
 
 function toPostgresLikeClause(column: string, arr: string[]) {
-  return arr.map(val => `${column} ilike '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
+  return arr.map(val => `${column} LIKE '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
 }

@@ -55,7 +55,7 @@ async function relationalQuery(
     ${cohortQuery}
     ${excludeBounceQuery}
     ${joinSessionQuery}
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       and website_event.event_type NOT IN (2, 5)
       and ${column} != ''

@@ -44,7 +44,7 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
         on website_event.event_id = event_data.website_event_id
       ${cohortQuery}
       ${joinSessionQuery}
-      where event_data.website_id = {{websiteId::uuid}}
+      where event_data.website_id = {{websiteId}}
         and event_data.created_at between {{startDate}} and {{endDate}}
       ${filterQuery}
       group by website_event.event_name, event_data.data_key, event_data.data_type, event_data.string_value
@@ -67,7 +67,7 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
       on website_event.event_id = event_data.website_event_id
     ${cohortQuery}
     ${joinSessionQuery}
-    where event_data.website_id = {{websiteId::uuid}}
+    where event_data.website_id = {{websiteId}}
       and event_data.created_at between {{startDate}} and {{endDate}}
     ${filterQuery}
     limit 500

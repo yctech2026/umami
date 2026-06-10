@@ -2,11 +2,15 @@ import { getBoardEntityIds } from '@/lib/boards';
 import { ENTITY_TYPE, ROLES } from '@/lib/constants';
 import { secret } from '@/lib/crypto';
 import { createToken } from '@/lib/jwt';
+import { eq, and } from 'drizzle-orm';
+import * as schema from '../../../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import redis from '@/lib/redis';
 import { json, notFound } from '@/lib/response';
 import type { BoardParameters, WhiteLabel } from '@/lib/types';
 import { getBoard, getLink, getPixel, getShareByCode, getWebsite } from '@/queries/prisma';
+
+const db = prisma.client;
 
 async function getAccountId(entity: { userId?: string; teamId?: string }): Promise<string | null> {
   if (entity.userId) {
@@ -14,15 +18,16 @@ async function getAccountId(entity: { userId?: string; teamId?: string }): Promi
   }
 
   if (entity.teamId) {
-    const teamOwner = await prisma.client.teamUser.findFirst({
-      where: {
-        teamId: entity.teamId,
-        role: ROLES.teamOwner,
-      },
-      select: {
-        userId: true,
-      },
-    });
+    const teamOwner = await db
+      .select({ userId: schema.teamUser.userId })
+      .from(schema.teamUser)
+      .where(
+        and(
+          eq(schema.teamUser.teamId, entity.teamId),
+          eq(schema.teamUser.role, ROLES.teamOwner),
+        ),
+      )
+      .get();
 
     return teamOwner?.userId || null;
   }
@@ -91,7 +96,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     return notFound();
   }
 
-  data.token = createToken(data, secret());
+  data.token = await createToken(data, await secret());
 
   const accountId = await getAccountId(entity);
 

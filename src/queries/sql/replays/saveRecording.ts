@@ -1,9 +1,30 @@
-import { gzipSync } from 'node:zlib';
 import clickhouse from '@/lib/clickhouse';
 import { uuid } from '@/lib/crypto';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
 import prisma from '@/lib/prisma';
+
+async function gzipAsync(data: Uint8Array): Promise<Uint8Array> {
+  const cs = new CompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  writer.write(data);
+  writer.close();
+  const reader = cs.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
 
 export interface SaveRecordingArgs {
   websiteId: string;
@@ -33,7 +54,7 @@ async function relationalQuery({
   startedAt,
   endedAt,
 }: SaveRecordingArgs) {
-  const compressed = gzipSync(Buffer.from(JSON.stringify(events), 'utf-8'));
+  const compressed = await gzipAsync(new TextEncoder().encode(JSON.stringify(events)));
 
   return prisma.client.sessionReplay.create({
     data: {

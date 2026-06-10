@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { getBoolEnv } from '@/lib/env';
 import { TestConsolePage } from './TestConsolePage';
 
 async function getEnabled() {
-  return !!process.env.ENABLE_TEST_CONSOLE;
+  return getBoolEnv('ENABLE_TEST_CONSOLE');
 }
 
 export default async function ({ params }: { params: Promise<{ websiteId: string }> }) {

@@ -28,7 +28,7 @@ async function relationalQuery(websiteId: string, filters: QueryFilters, session
       ? `join (select distinct website_event.website_id, website_event.session_id, website_event.visit_id
                from website_event
                ${cohortQuery}
-               where website_event.website_id = {{websiteId::uuid}}
+               where website_event.website_id = {{websiteId}}
                   and website_event.created_at between {{startDate}} and {{endDate}}
                   ${filterQuery}) website_event
         on website_event.website_id = sr.website_id
@@ -36,14 +36,14 @@ async function relationalQuery(websiteId: string, filters: QueryFilters, session
           and website_event.visit_id = sr.visit_id`
       : '';
 
-  const sessionFilter = sessionId ? 'and sr.session_id = {{sessionId::uuid}}' : '';
+  const sessionFilter = sessionId ? 'and sr.session_id = {{sessionId}}' : '';
 
   const searchQuery = search
-    ? `and (session.distinct_id ilike {{search}}
-           or session.city ilike {{search}}
-           or session.browser ilike {{search}}
-           or session.os ilike {{search}}
-           or session.device ilike {{search}})`
+    ? `and (session.distinct_id LIKE {{search}}
+           or session.city LIKE {{search}}
+           or session.browser LIKE {{search}}
+           or session.os LIKE {{search}}
+           or session.device LIKE {{search}})`
     : '';
 
   return pagedRawQuery(
@@ -61,13 +61,13 @@ async function relationalQuery(websiteId: string, filters: QueryFilters, session
       count(sr.replay_id) as "chunkCount",
       min(sr.started_at) as "startedAt",
       max(sr.ended_at) as "endedAt",
-      sum(extract(epoch from sr.ended_at - sr.started_at) * 1000)::bigint as "duration",
+      sum((strftime('%s', sr.ended_at) - strftime('%s', sr.started_at)) * 1000) as "duration",
       max(sr.created_at) as "createdAt"
     from session_replay sr
     join session on session.session_id = sr.session_id
       and session.website_id = sr.website_id
     ${joinQuery}
-    where sr.website_id = {{websiteId::uuid}}
+    where sr.website_id = {{websiteId}}
       and sr.created_at between {{startDate}} and {{endDate}}
     ${sessionFilter}
     ${searchQuery}

@@ -57,7 +57,7 @@ async function relationalQuery(
     join website_event we
     on we.created_at = m.created_at
         and we.session_id = m.session_id
-    where we.website_id = {{websiteId::uuid}}
+    where we.website_id = {{websiteId}}
           and we.created_at between {{startDate}} and {{endDate}}
           and we.${utmColumn} != ''
     group by 1
@@ -72,7 +72,7 @@ async function relationalQuery(
         from website_event
         ${cohortQuery}
         ${joinSessionQuery}
-        where website_event.website_id = {{websiteId::uuid}}
+        where website_event.website_id = {{websiteId}}
           and website_event.created_at between {{startDate}} and {{endDate}}
           and website_event.${column} = {{step}}
           ${filterQuery}
@@ -86,7 +86,7 @@ async function relationalQuery(
     from events e
     join website_event we
     on we.session_id = e.session_id
-    where we.website_id = {{websiteId::uuid}}
+    where we.website_id = {{websiteId}}
           and we.created_at between {{startDate}} and {{endDate}}
     group by e.session_id)`
       : `\n
@@ -95,7 +95,7 @@ async function relationalQuery(
     from events e
     join website_event we
     on we.session_id = e.session_id
-    where we.website_id = {{websiteId::uuid}}
+    where we.website_id = {{websiteId}}
           and we.created_at between {{startDate}} and {{endDate}}
           and we.created_at < e.max_dt
     group by e.session_id)`;
@@ -113,9 +113,9 @@ async function relationalQuery(
         and we.session_id = m.session_id
     join session s
     on s.session_id = m.session_id
-    where we.website_id = {{websiteId::uuid}}
+    where we.website_id = {{websiteId}}
           and we.created_at between {{startDate}} and {{endDate}}
-          and we.referrer_domain != regexp_replace(we.hostname, '^www.', '')
+          and we.referrer_domain != replace(we.hostname, 'www.', '')
           and we.referrer_domain != ''
     group by 1
     order by 2 desc
@@ -144,7 +144,7 @@ async function relationalQuery(
     join website_event we
     on we.created_at = m.created_at
         and we.session_id = m.session_id
-    where we.website_id = {{websiteId::uuid}}
+    where we.website_id = {{websiteId}}
           and we.created_at between {{startDate}} and {{endDate}}
     group by 1
     order by 2 desc
@@ -210,7 +210,7 @@ async function relationalQuery(
     from website_event
     ${joinSessionQuery}
     ${cohortQuery}
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
         and website_event.created_at between {{startDate}} and {{endDate}}
         and website_event.${column} = {{step}}
         ${filterQuery}

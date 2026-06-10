@@ -47,7 +47,7 @@ async function relationalQuery(
     filterQuery || cohortQuery
       ? `join (select *
                from website_event
-               where website_id = {{websiteId::uuid}}
+               where website_id = {{websiteId}}
                   and created_at between {{startDate}} and {{endDate}}
                   and event_type = 2) website_event
         on website_event.website_id = revenue.website_id
@@ -66,7 +66,7 @@ async function relationalQuery(
       on session.website_id = revenue.website_id
         and session.session_id = revenue.session_id
     ${cohortQuery}
-    where revenue.website_id = {{websiteId::uuid}}
+    where revenue.website_id = {{websiteId}}
       and revenue.created_at between {{startDate}} and {{endDate}}
       and upper(revenue.currency) = {{currency}}
       ${filterQuery}
@@ -88,7 +88,7 @@ async function relationalQuery(
       on session.website_id = revenue.website_id
         and session.session_id = revenue.session_id
     ${cohortQuery}
-    where revenue.website_id = {{websiteId::uuid}}
+    where revenue.website_id = {{websiteId}}
       and revenue.created_at between {{startDate}} and {{endDate}}
       and upper(revenue.currency) = {{currency}}
       ${filterQuery}
@@ -109,7 +109,7 @@ async function relationalQuery(
       ${joinQuery}
       ${cohortQuery}
       ${joinSessionQuery}
-      where revenue.website_id = {{websiteId::uuid}}
+      where revenue.website_id = {{websiteId}}
         and revenue.created_at between {{startDate}} and {{endDate}}
         and upper(revenue.currency) = {{currency}}
         ${filterQuery}
@@ -125,7 +125,7 @@ async function relationalQuery(
       join (
         select session_id, min(created_at) as min_date
         from website_event
-        where website_id = {{websiteId::uuid}}
+        where website_id = {{websiteId}}
           and created_at between {{startDate}} and {{endDate}}
         group by session_id
       ) we on we.session_id = e.session_id)
@@ -137,7 +137,7 @@ async function relationalQuery(
     join (
       select website_id, session_id, referrer_domain, created_at
       from website_event
-      where website_id = {{websiteId::uuid}}
+      where website_id = {{websiteId}}
         and created_at between {{startDate}} and {{endDate}}) we
     on we.website_id = revenue_data.website_id
       and we.session_id = revenue_data.session_id
@@ -159,7 +159,7 @@ async function relationalQuery(
       ${joinQuery}
       ${cohortQuery}
       ${joinSessionQuery}
-      where revenue.website_id = {{websiteId::uuid}}
+      where revenue.website_id = {{websiteId}}
         and revenue.created_at between {{startDate}} and {{endDate}}
         and upper(revenue.currency) = {{currency}}
         ${filterQuery}
@@ -175,17 +175,17 @@ async function relationalQuery(
       join (
         select session_id, min(created_at) as min_date
         from website_event
-        where website_id = {{websiteId::uuid}}
+        where website_id = {{websiteId}}
           and created_at between {{startDate}} and {{endDate}}
         group by session_id
       ) we on we.session_id = e.session_id),
 
     revenue_prefix AS (
       select
-        case when we.utm_medium ilike '%cp%' OR
-              we.utm_medium ilike '%ppc%' OR
-              we.utm_medium ilike '%retargeting%' OR
-              we.utm_medium ilike '%paid%' then 'paid' else 'organic' end AS prefix,
+        case when we.utm_medium LIKE '%cp%' OR
+              we.utm_medium LIKE '%ppc%' OR
+              we.utm_medium LIKE '%retargeting%' OR
+              we.utm_medium LIKE '%paid%' then 'paid' else 'organic' end AS prefix,
         we.referrer_domain,
         we.url_query,
         we.utm_medium,
@@ -196,7 +196,7 @@ async function relationalQuery(
       join (
         select website_id, session_id, referrer_domain, url_query, utm_medium, utm_source, hostname, created_at
         from website_event
-        where website_id = {{websiteId::uuid}}
+        where website_id = {{websiteId}}
           and created_at between {{startDate}} and {{endDate}}) we
       on we.website_id = r.website_id
         and we.session_id = r.session_id
@@ -208,14 +208,14 @@ async function relationalQuery(
           when referrer_domain = '' and url_query = '' then 'direct'
           when ${toPostgresLikeClause('url_query', PAID_AD_PARAMS)} then 'paidAds'
           when ${toPostgresLikeClause('utm_medium', ['referral', 'app', 'link'])} then 'referral'
-          when utm_medium ilike '%affiliate%' then 'affiliate'
-          when utm_medium ilike '%sms%' or utm_source ilike '%sms%' then 'sms'
-          when ${toPostgresLikeClause('referrer_domain', SEARCH_DOMAINS)} or utm_medium ilike '%organic%' then concat(prefix, 'Search')
-          when ${toPostgresLikeClause('referrer_domain', SOCIAL_DOMAINS)} then concat(prefix, 'Social')
-          when ${toPostgresLikeClause('referrer_domain', EMAIL_DOMAINS)} or utm_medium ilike '%mail%' then 'email'
-          when ${toPostgresLikeClause('referrer_domain', SHOPPING_DOMAINS)} or utm_medium ilike '%shop%' then concat(prefix, 'Shopping')
-          when ${toPostgresLikeClause('referrer_domain', VIDEO_DOMAINS)} or utm_medium ilike '%video%' then concat(prefix, 'Video')
-          when referrer_domain != regexp_replace(hostname, '^www.', '') and referrer_domain != '' then 'referral'
+          when utm_medium LIKE '%affiliate%' then 'affiliate'
+          when utm_medium LIKE '%sms%' or utm_source LIKE '%sms%' then 'sms'
+          when ${toPostgresLikeClause('referrer_domain', SEARCH_DOMAINS)} or utm_medium LIKE '%organic%' then prefix || 'Search'
+          when ${toPostgresLikeClause('referrer_domain', SOCIAL_DOMAINS)} then prefix || 'Social'
+          when ${toPostgresLikeClause('referrer_domain', EMAIL_DOMAINS)} or utm_medium LIKE '%mail%' then 'email'
+          when ${toPostgresLikeClause('referrer_domain', SHOPPING_DOMAINS)} or utm_medium LIKE '%shop%' then prefix || 'Shopping'
+          when ${toPostgresLikeClause('referrer_domain', VIDEO_DOMAINS)} or utm_medium LIKE '%video%' then prefix || 'Video'
+          when referrer_domain != replace(hostname, 'www.', '') and referrer_domain != '' then 'referral'
           else 'Unknown' end AS "name",
         value
       from revenue_prefix)
@@ -404,19 +404,19 @@ async function clickhouseQuery(
           when position(lower(utm_medium), 'sms') > 0 or position(lower(utm_source), 'sms') > 0 then 'sms'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SEARCH_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'organic') > 0 then concat(prefix, 'Search')
+          )}]) != 0 or position(lower(utm_medium), 'organic') > 0 then prefix || 'Search'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SOCIAL_DOMAINS,
-          )}]) != 0 then concat(prefix, 'Social')
+          )}]) != 0 then prefix || 'Social'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             EMAIL_DOMAINS,
           )}]) != 0 or position(lower(utm_medium), 'mail') > 0 then 'email'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SHOPPING_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'shop') > 0 then concat(prefix, 'Shopping')
+          )}]) != 0 or position(lower(utm_medium), 'shop') > 0 then prefix || 'Shopping'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             VIDEO_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'video') > 0 then concat(prefix, 'Video')
+          )}]) != 0 or position(lower(utm_medium), 'video') > 0 then prefix || 'Video'
           when referrer_domain != hostname and referrer_domain != '' then 'referral'
         else 'Unknown' end AS "name",
         sum(revenue.value) as "value"
@@ -447,5 +447,5 @@ function toClickHouseStringArray(arr: string[]): string {
 }
 
 function toPostgresLikeClause(column: string, arr: string[]) {
-  return arr.map(val => `${column} ilike '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
+  return arr.map(val => `${column} LIKE '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
 }

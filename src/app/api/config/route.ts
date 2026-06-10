@@ -1,3 +1,4 @@
+import { getEnv, getBoolEnv } from '@/lib/env';
 import { parseRequest } from '@/lib/request';
 import { json } from '@/lib/response';
 
@@ -9,14 +10,14 @@ export async function GET(request: Request) {
   }
 
   return json({
-    cloudMode: !!process.env.CLOUD_MODE,
-    faviconUrl: process.env.FAVICON_URL,
-    linksUrl: process.env.LINKS_URL,
-    pixelsUrl: process.env.PIXELS_URL,
-    privateMode: !!process.env.PRIVATE_MODE,
-    telemetryDisabled: !!process.env.DISABLE_TELEMETRY,
-    trackerScriptName: process.env.TRACKER_SCRIPT_NAME,
-    updatesDisabled: !!process.env.DISABLE_UPDATES,
-    currentVersion: !!process.env.currentVersion,
+    cloudMode: getBoolEnv('CLOUD_MODE'),
+    faviconUrl: getEnv('FAVICON_URL', ''),
+    linksUrl: getEnv('LINKS_URL', ''),
+    pixelsUrl: getEnv('PIXELS_URL', ''),
+    privateMode: getBoolEnv('PRIVATE_MODE'),
+    telemetryDisabled: getBoolEnv('DISABLE_TELEMETRY'),
+    trackerScriptName: getEnv('TRACKER_SCRIPT_NAME', ''),
+    updatesDisabled: getBoolEnv('DISABLE_UPDATES'),
+    currentVersion: getBoolEnv('currentVersion'),
   });
 }

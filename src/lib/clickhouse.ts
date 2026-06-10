@@ -5,6 +5,7 @@ import { CLICKHOUSE } from '@/lib/db';
 import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS } from './constants';
 import { filtersObjectToArray } from './params';
 import type { QueryFilters, QueryOptions } from './types';
+import { getEnvBool, getEnvString } from '@/lib/env';
 
 export const CLICKHOUSE_DATE_FORMATS = {
   utc: '%Y-%m-%dT%H:%i:%SZ',
@@ -19,7 +20,7 @@ export const CLICKHOUSE_DATE_FORMATS = {
 const log = debug('umami:clickhouse');
 
 let clickhouse: ClickHouseClient;
-const enabled = Boolean(process.env.CLICKHOUSE_URL);
+const enabled = Boolean(getEnvString('CLICKHOUSE_URL'));
 
 function getClient() {
   const {
@@ -29,7 +30,7 @@ function getClient() {
     protocol,
     username = 'default',
     password,
-  } = new URL(process.env.CLICKHOUSE_URL);
+  } = new URL(getEnvString('CLICKHOUSE_URL'));
 
   const client = createClient({
     url: `${protocol}//${hostname}:${port}`,
@@ -38,7 +39,7 @@ function getClient() {
     password,
   });
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (getEnvString('NODE_ENV') !== 'production') {
     globalThis[CLICKHOUSE] = client;
   }
 
@@ -267,7 +268,7 @@ async function rawQuery<T = unknown>(
   params: Record<string, unknown> = {},
   name?: string,
 ): Promise<T> {
-  if (process.env.LOG_QUERY) {
+  if (getEnvBool('LOG_QUERY')) {
     log({ query, params, name });
   }
 
@@ -306,7 +307,7 @@ async function findFirst(data: any[]) {
 
 async function connect() {
   if (enabled && !clickhouse) {
-    clickhouse = process.env.CLICKHOUSE_URL && (globalThis[CLICKHOUSE] || getClient());
+    clickhouse = getEnvString('CLICKHOUSE_URL') && (globalThis[CLICKHOUSE] || getClient());
   }
 
   return clickhouse;

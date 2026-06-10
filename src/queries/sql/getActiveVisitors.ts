@@ -20,7 +20,7 @@ async function relationalQuery(websiteId: string) {
     `
     select count(distinct session_id) as "visitors"
     from website_event
-    where website_id = {{websiteId::uuid}}
+    where website_id = {{websiteId}}
     and created_at >= {{startDate}}
     `,
     { websiteId, startDate },

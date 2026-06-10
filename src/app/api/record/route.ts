@@ -1,6 +1,7 @@
 import { isbot } from 'isbot';
 import { serializeError } from 'serialize-error';
 import { z } from 'zod';
+import { getBoolEnv } from '@/lib/env';
 import { secret } from '@/lib/crypto';
 import { getClientInfo, hasBlockedIp } from '@/lib/detect';
 import { parseToken } from '@/lib/jwt';
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       return badRequest({ message: 'Missing session token.' });
     }
 
-    const cache = (await parseToken(cacheHeader, secret())) as Cache | null;
+    const cache = (await parseToken(cacheHeader, await secret())) as Cache | null;
 
     if (!cache?.sessionId || !cache?.visitId) {
       return badRequest({ message: 'Invalid session token.' });
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
       return json({ ok: false, reason: 'replay_disabled' });
     }
 
-    if (process.env.CLOUD_MODE) {
+    if (getBoolEnv('CLOUD_MODE')) {
       const account = website.teamId
         ? await fetchTeam(website.teamId)
         : website.userId
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     // Client info for bot/IP checks
     const { ip, userAgent } = await getClientInfo(request, {});
 
-    if (!process.env.DISABLE_BOT_CHECK && isbot(userAgent)) {
+    if (!getBoolEnv('DISABLE_BOT_CHECK') && isbot(userAgent)) {
       return json({ beep: 'boop' });
     }
 

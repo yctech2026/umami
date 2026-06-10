@@ -1,10 +1,11 @@
+import { getBoolEnv, getEnv } from '@/lib/env';
 import { CURRENT_VERSION, TELEMETRY_PIXEL } from '@/lib/constants';
 
 export async function GET() {
   if (
-    process.env.NODE_ENV !== 'production' ||
-    process.env.DISABLE_TELEMETRY ||
-    process.env.PRIVATE_MODE
+    getEnv('NODE_ENV', 'development') !== 'production' ||
+    getBoolEnv('DISABLE_TELEMETRY') ||
+    getBoolEnv('PRIVATE_MODE')
   ) {
     return new Response('/* telemetry disabled */', {
       headers: {

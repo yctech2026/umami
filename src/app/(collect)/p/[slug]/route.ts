@@ -2,12 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/send/route';
-import type { Pixel } from '@/generated/prisma/client';
+import type { Pixel } from '@/lib/drizzle-types';
 import redis from '@/lib/redis';
 import { notFound } from '@/lib/response';
 import { findPixel } from '@/queries/prisma';
 
-const image = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw', 'base64');
+const base64Str = 'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw';
+const binaryStr = atob(base64Str);
+const image = new Uint8Array(binaryStr.length);
+for (let i = 0; i < binaryStr.length; i++) {
+  image[i] = binaryStr.charCodeAt(i);
+}
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

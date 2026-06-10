@@ -52,7 +52,7 @@ async function relationalQuery(websiteId: string, column: string, filters: Query
     inner join session
       on session.session_id = website_event.session_id
         and session.website_id = website_event.website_id
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       ${searchQuery}
       ${excludeDomain}

@@ -1,4 +1,4 @@
-import type { EventData } from '@/generated/prisma/client';
+import type { EventData } from '@/lib/drizzle-types';
 import clickhouse from '@/lib/clickhouse';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import prisma from '@/lib/prisma';
@@ -30,9 +30,9 @@ async function relationalQuery(websiteId: string, eventId: string) {
        event_data.created_at as "createdAt"
     from event_data
     join website_event on website_event.event_id = event_data.website_event_id
-      and website_event.website_id = {{websiteId::uuid}}
-    where event_data.website_id = {{websiteId::uuid}}
-      and event_data.website_event_id = {{eventId::uuid}}
+      and website_event.website_id = {{websiteId}}
+    where event_data.website_id = {{websiteId}}
+      and event_data.website_event_id = {{eventId}}
     `,
     { websiteId, eventId },
     FUNCTION_NAME,

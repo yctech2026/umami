@@ -21,8 +21,8 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
   });
 
   const searchQuery = search
-    ? `and ((event_name ilike {{search}} and event_type = 2)
-           or (url_path ilike {{search}} and event_type = 1))`
+    ? `and ((event_name LIKE {{search}} and event_type = 2)
+           or (url_path LIKE {{search}} and event_type = 1))`
     : '';
 
   return pagedRawQuery(
@@ -48,13 +48,13 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
       website_event.event_name as "eventName",
       event_id IN (select website_event_id 
                    from event_data
-                   where website_id = {{websiteId::uuid}}
+                   where website_id = {{websiteId}}
                       and created_at between {{startDate}} and {{endDate}}) AS "hasData"
     from website_event
     ${cohortQuery}
     join session on session.session_id = website_event.session_id 
       and session.website_id = website_event.website_id
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
     ${dateQuery}
     ${filterQuery}
     ${searchQuery}

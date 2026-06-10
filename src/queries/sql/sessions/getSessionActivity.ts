@@ -32,11 +32,11 @@ async function relationalQuery(websiteId: string, sessionId: string, filters: Qu
       hostname,
       event_id IN (select website_event_id 
                    from event_data
-                   where website_id = {{websiteId::uuid}}
+                   where website_id = {{websiteId}}
                       and created_at between {{startDate}} and {{endDate}}) AS "hasData"
     from website_event
-    where website_id = {{websiteId::uuid}}
-      and session_id = {{sessionId::uuid}}
+    where website_id = {{websiteId}}
+      and session_id = {{sessionId}}
       and created_at between {{startDate}} and {{endDate}}
     order by created_at desc
     limit 500

@@ -23,7 +23,7 @@ async function relationalQuery(websiteId: string) {
       min(created_at) as "startDate",
       max(created_at) as "endDate"
     from website_event
-    where website_id = {{websiteId::uuid}}
+    where website_id = {{websiteId}}
       and created_at >= {{startDate}}
     `,
     queryParams,

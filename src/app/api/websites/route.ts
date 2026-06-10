@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getBoolEnv } from '@/lib/env';
 import { ENTITY_TYPE } from '@/lib/constants';
 import { uuid } from '@/lib/crypto';
 import { fetchAccount } from '@/lib/load';
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
   const { id, name, domain, shareId, teamId } = body;
 
-  if (process.env.CLOUD_MODE && !teamId) {
+  if (getBoolEnv('CLOUD_MODE') && !teamId) {
     const account = await fetchAccount(auth.user.id);
 
     if (!account?.hasSubscription) {
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   const data: any = {
-    id: id ?? uuid(),
+    id: id ?? await uuid(),
     createdBy: auth.user.id,
     name,
     domain,

@@ -26,8 +26,8 @@ async function relationalQuery(websiteId: string, sessionId: string) {
         date_value as "dateValue",
         created_at as "createdAt"
     from session_data
-    where website_id = {{websiteId::uuid}}
-      and session_id = {{sessionId::uuid}}
+    where website_id = {{websiteId}}
+      and session_id = {{sessionId}}
     order by data_key asc
     `,
     { websiteId, sessionId },

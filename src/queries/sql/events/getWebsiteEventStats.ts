@@ -34,7 +34,7 @@ async function relationalQuery(
   return rawQuery(
     `
     select
-      cast(coalesce(sum(t.c), 0) as bigint) as "events",
+      cast(coalesce(sum(t.c), 0) as INTEGER) as "events",
       count(distinct t.session_id) as "visitors",
       count(distinct t.visit_id) as "visits",
       count(distinct t.event_name) as "uniqueEvents"
@@ -47,7 +47,7 @@ async function relationalQuery(
       from website_event
       ${cohortQuery}
       ${joinSessionQuery}  
-      where website_event.website_id = {{websiteId::uuid}}
+      where website_event.website_id = {{websiteId}}
         and website_event.created_at between {{startDate}} and {{endDate}}
         and website_event.event_type = 2
         ${filterQuery}

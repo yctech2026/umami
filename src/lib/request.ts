@@ -8,6 +8,7 @@ import { filtersArrayToObject } from '@/lib/params';
 import { badRequest, unauthorized } from '@/lib/response';
 import type { QueryFilters } from '@/lib/types';
 import { getWebsiteSegment } from '@/queries/prisma';
+import { getEnvBool } from '@/lib/env';
 
 export async function parseRequest(
   request: Request,
@@ -91,7 +92,7 @@ export function getRequestFilters(query: Record<string, any>) {
 
 export async function setWebsiteDate(websiteId: string, data: Record<string, any>) {
   const website = await fetchWebsite(websiteId);
-  const cloudMode = !!process.env.CLOUD_MODE;
+  const cloudMode = getEnvBool('CLOUD_MODE');
 
   if (cloudMode && website && !website.teamId) {
     const account = await fetchAccount(website.userId);

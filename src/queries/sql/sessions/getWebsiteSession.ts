@@ -52,8 +52,8 @@ async function relationalQuery(websiteId: string, sessionId: string) {
           sum(case when website_event.event_type = 2 then 1 else 0 end) as events
     from session
     join website_event on website_event.session_id = session.session_id
-    where session.website_id = {{websiteId::uuid}}
-      and session.session_id = {{sessionId::uuid}}
+    where session.website_id = {{websiteId}}
+      and session.session_id = {{sessionId}}
     group by session.session_id, session.distinct_id, visit_id, session.website_id, session.browser, session.os, session.device, session.screen, session.language, session.country, session.region, session.city) t
     group by id, distinct_id, website_id, browser, os, device, screen, language, country, region, city;
     `,

@@ -45,7 +45,7 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
       ${cohortQuery}
       ${excludeBounceQuery}
       ${joinSessionQuery}
-      where website_event.website_id = {{websiteId::uuid}}
+      where website_event.website_id = {{websiteId}}
         and website_event.event_type NOT IN (2, 5)
         ${dateQuery}
         ${filterQuery}),
@@ -53,16 +53,16 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
     channels as (
       select case
           when referrer_domain = '' and url_query = '' then 'direct'
-          when ${toPostgresLikeClause('url_query', PAID_AD_PARAMS)} then 'paidAds'
-          when ${toPostgresLikeClause('utm_medium', ['referral', 'app', 'link'])} then 'referral'
-          when utm_medium ilike '%affiliate%' then 'affiliate'
-          when utm_medium ilike '%sms%' or utm_source ilike '%sms%' then 'sms'
-          when ${toPostgresLikeClause('referrer_domain', SEARCH_DOMAINS)} or utm_medium ilike '%organic%' then concat(prefix, 'Search')
-          when ${toPostgresLikeClause('referrer_domain', SOCIAL_DOMAINS)} then concat(prefix, 'Social')
-          when ${toPostgresLikeClause('referrer_domain', EMAIL_DOMAINS)} or utm_medium ilike '%mail%' then 'email'
-          when ${toPostgresLikeClause('referrer_domain', SHOPPING_DOMAINS)} or utm_medium ilike '%shop%' then concat(prefix, 'Shopping')
-          when ${toPostgresLikeClause('referrer_domain', VIDEO_DOMAINS)} or utm_medium ilike '%video%' then concat(prefix, 'Video')
-          when referrer_domain != regexp_replace(hostname, '^www.', '') and referrer_domain != '' then 'referral'
+          when ${toSqliteLikeClause('url_query', PAID_AD_PARAMS)} then 'paidAds'
+          when ${toSqliteLikeClause('utm_medium', ['referral', 'app', 'link'])} then 'referral'
+          when utm_medium LIKE '%affiliate%' then 'affiliate'
+          when utm_medium LIKE '%sms%' or utm_source LIKE '%sms%' then 'sms'
+          when ${toSqliteLikeClause('referrer_domain', SEARCH_DOMAINS)} or utm_medium LIKE '%organic%' then prefix || 'Search'
+          when ${toSqliteLikeClause('referrer_domain', SOCIAL_DOMAINS)} then prefix || 'Social'
+          when ${toSqliteLikeClause('referrer_domain', EMAIL_DOMAINS)} or utm_medium LIKE '%mail%' then 'email'
+          when ${toSqliteLikeClause('referrer_domain', SHOPPING_DOMAINS)} or utm_medium LIKE '%shop%' then prefix || 'Shopping'
+          when ${toSqliteLikeClause('referrer_domain', VIDEO_DOMAINS)} or utm_medium LIKE '%video%' then prefix || 'Video'
+          when referrer_domain != CASE WHEN hostname LIKE 'www.%' THEN substr(hostname, 5) ELSE hostname END and referrer_domain != '' then 'referral'
           else '' end AS x,
         count(distinct session_id) y
       from prefix
@@ -104,19 +104,19 @@ async function clickhouseQuery(
           when position(lower(utm_medium), 'sms') > 0 or position(lower(utm_source), 'sms') > 0 then 'sms'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SEARCH_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'organic') > 0 then concat(prefix, 'Search')
+          )}]) != 0 or position(lower(utm_medium), 'organic') > 0 then prefix || 'Search'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SOCIAL_DOMAINS,
-          )}]) != 0 then concat(prefix, 'Social')
+          )}]) != 0 then prefix || 'Social'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             EMAIL_DOMAINS,
           )}]) != 0 or position(lower(utm_medium), 'mail') > 0 then 'email'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             SHOPPING_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'shop') > 0 then concat(prefix, 'Shopping')
+          )}]) != 0 or position(lower(utm_medium), 'shop') > 0 then prefix || 'Shopping'
           when multiSearchAny(lower(referrer_domain), [${toClickHouseStringArray(
             VIDEO_DOMAINS,
-          )}]) != 0 or position(lower(utm_medium), 'video') > 0 then concat(prefix, 'Video')
+          )}]) != 0 or position(lower(utm_medium), 'video') > 0 then prefix || 'Video'
           when referrer_domain != hostname and referrer_domain != '' then 'referral'
         else '' end AS x,
         count(distinct session_id) y
@@ -144,6 +144,6 @@ function toClickHouseStringArray(arr: string[]): string {
   return arr.map(p => `'${p.replace(/'/g, "\\'")}'`).join(', ');
 }
 
-function toPostgresLikeClause(column: string, arr: string[]) {
-  return arr.map(val => `${column} ilike '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
+function toSqliteLikeClause(column: string, arr: string[]) {
+  return arr.map(val => `${column} LIKE '%${val.replace(/'/g, "''")}%'`).join(' OR\n  ');
 }

@@ -41,7 +41,7 @@ async function relationalQuery(
     ? `and event_name in (
     select event_name
     from website_event
-    where website_id = {{websiteId::uuid}}
+    where website_id = {{websiteId}}
       and created_at between {{startDate}} and {{endDate}}
       and event_type = 2
     group by event_name
@@ -59,7 +59,7 @@ async function relationalQuery(
     from website_event
     ${cohortQuery}
     ${joinSessionQuery}
-    where website_event.website_id = {{websiteId::uuid}}
+    where website_event.website_id = {{websiteId}}
       and website_event.created_at between {{startDate}} and {{endDate}}
       and website_event.event_type = 2
       ${filterQuery}

@@ -1,7 +1,28 @@
-import { gunzipSync } from 'node:zlib';
 import clickhouse from '@/lib/clickhouse';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import prisma from '@/lib/prisma';
+
+async function gunzipAsync(data: Uint8Array): Promise<Uint8Array> {
+  const cs = new DecompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  writer.write(data);
+  writer.close();
+  const reader = cs.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
 
 const FUNCTION_NAME = 'getReplayChunks';
 
@@ -44,18 +65,22 @@ async function relationalQuery(websiteId: string, visitId: string): Promise<Repl
       started_at as "startedAt",
       ended_at as "endedAt"
     from session_replay
-    where website_id = {{websiteId::uuid}}
-      and visit_id = {{visitId::uuid}}
+    where website_id = {{websiteId}}
+      and visit_id = {{visitId}}
     order by chunk_index asc
     `,
     { websiteId, visitId },
     FUNCTION_NAME,
   );
 
-  return chunks.map(chunk => ({
-    ...chunk,
-    events: JSON.parse(gunzipSync(Buffer.from(chunk.events)).toString('utf-8')),
-  }));
+  return Promise.all(
+    chunks.map(async chunk => ({
+      ...chunk,
+      events: JSON.parse(
+        new TextDecoder().decode(await gunzipAsync(new Uint8Array(chunk.events))),
+      ),
+    })),
+  );
 }
 
 async function clickhouseQuery(websiteId: string, visitId: string): Promise<ReplayChunk[]> {

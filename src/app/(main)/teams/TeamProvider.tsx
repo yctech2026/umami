@@ -2,7 +2,7 @@
 import { Loading } from '@umami/react-zen';
 import { createContext, type ReactNode } from 'react';
 import { useTeamQuery } from '@/components/hooks/queries/useTeamQuery';
-import type { Team } from '@/generated/prisma/client';
+import type { Team } from '@/lib/drizzle-types';
 
 export const TeamContext = createContext<Team>(null);
 

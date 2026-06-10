@@ -1,17 +1,14 @@
-import path from 'node:path';
 import { browserName, detectOS } from 'detect-browser';
 import ipaddr from 'ipaddr.js';
 import isLocalhost from 'is-localhost-ip';
-import maxmind from 'maxmind';
 import { UAParser } from 'ua-parser-js';
-import { getIpAddress, stripPort } from '@/lib/ip';
+import { getIpAddress } from '@/lib/ip';
 import { safeDecodeURIComponent } from '@/lib/url';
-
-const MAXMIND = 'maxmind';
+import { getEnvBool, getEnvString } from '@/lib/env';
 
 const PROVIDER_HEADERS = [
   // Umami custom headers (cloud mode only)
-  ...(process.env.CLOUD_MODE
+  ...(getEnvBool('CLOUD_MODE')
     ? [
         {
           countryHeader: 'x-umami-client-country',
@@ -73,7 +70,12 @@ function decodeHeader(s: string | undefined | null): string | undefined | null {
     return s;
   }
 
-  return Buffer.from(s, 'latin1').toString('utf-8');
+  // Latin1 to UTF-8 conversion for Cloudflare Workers
+  const bytes = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) {
+    bytes[i] = s.charCodeAt(i) & 0xff;
+  }
+  return new TextDecoder('utf-8').decode(bytes);
 }
 
 export async function getLocation(ip: string = '', headers: Headers, skipHeaders: boolean) {
@@ -82,7 +84,7 @@ export async function getLocation(ip: string = '', headers: Headers, skipHeaders
     return null;
   }
 
-  if (!skipHeaders && !process.env.SKIP_LOCATION_HEADERS) {
+  if (!skipHeaders && !getEnvBool('SKIP_LOCATION_HEADERS')) {
     for (const provider of PROVIDER_HEADERS) {
       const countryHeader = headers.get(provider.countryHeader);
       if (countryHeader) {
@@ -99,28 +101,7 @@ export async function getLocation(ip: string = '', headers: Headers, skipHeaders
     }
   }
 
-  // Database lookup
-  if (!globalThis[MAXMIND]) {
-    const dir = path.join(process.cwd(), 'geo');
-
-    globalThis[MAXMIND] = await maxmind.open(
-      process.env.GEOLITE_DB_PATH || path.resolve(dir, 'GeoLite2-City.mmdb'),
-    );
-  }
-
-  const result = globalThis[MAXMIND]?.get(stripPort(ip));
-
-  if (result) {
-    const country = result.country?.iso_code ?? result?.registered_country?.iso_code;
-    const region = result.subdivisions?.[0]?.iso_code;
-    const city = result.city?.names?.en;
-
-    return {
-      country,
-      region: getRegionCode(country, region),
-      city,
-    };
-  }
+  return null;
 }
 
 export async function getClientInfo(request: Request, payload: Record<string, any>) {
@@ -138,7 +119,7 @@ export async function getClientInfo(request: Request, payload: Record<string, an
 }
 
 export function hasBlockedIp(clientIp: string) {
-  const ignoreIps = process.env.IGNORE_IP;
+  const ignoreIps = getEnvString('IGNORE_IP');
 
   if (ignoreIps) {
     const ips = [];

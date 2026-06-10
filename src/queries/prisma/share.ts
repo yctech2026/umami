@@ -1,9 +1,19 @@
-import type { Prisma } from '@/generated/prisma/client';
+import { eq, and, desc, count } from 'drizzle-orm';
+import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { QueryFilters } from '@/lib/types';
 
-export async function findShare(criteria: Prisma.ShareFindUniqueArgs) {
-  return prisma.client.share.findUnique(criteria);
+const db = prisma.client;
+
+export async function findShare(criteria: { where?: { id?: string; slug?: string } }) {
+  const { where } = criteria;
+  if (!where) return null;
+
+  const conditions: any[] = [];
+  if (where.id) conditions.push(eq(schema.share.shareId, where.id));
+  if (where.slug) conditions.push(eq(schema.share.slug, where.slug));
+
+  return db.select().from(schema.share).where(and(...conditions)).get();
 }
 
 export async function getShare(shareId: string) {
@@ -23,61 +33,63 @@ export async function getShareByCode(slug: string) {
 }
 
 export async function getShareByEntityId(entityId: string) {
-  return prisma.client.share.findFirst({
-    where: {
-      entityId,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+  return db
+    .select()
+    .from(schema.share)
+    .where(eq(schema.share.entityId, entityId))
+    .orderBy(desc(schema.share.createdAt))
+    .get();
 }
 
 export async function getSharesByEntityId(entityId: string, filters?: QueryFilters) {
-  const { pagedQuery } = prisma;
+  const { page = 1, pageSize = 20 } = filters || {};
 
-  return pagedQuery(
-    'share',
-    {
-      where: {
-        entityId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    },
-    filters,
-  );
+  const where = eq(schema.share.entityId, entityId);
+  const size = +pageSize || 20;
+  const offset = size * (+page - 1);
+
+  const data = await db
+    .select()
+    .from(schema.share)
+    .where(where)
+    .orderBy(desc(schema.share.createdAt))
+    .limit(size)
+    .offset(offset);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(schema.share)
+    .where(where);
+
+  return { data, count: Number(total), page: +page, pageSize: size };
 }
 
-export async function createShare(
-  data: Prisma.ShareCreateInput | Prisma.ShareUncheckedCreateInput,
-) {
-  return prisma.client.share.create({
-    data,
-  });
+export async function createShare(data: any) {
+  return db.insert(schema.share).values(data).returning().all().then(r => r[0]);
 }
 
-export async function updateShare(
-  shareId: string,
-  data: Prisma.ShareUpdateInput | Prisma.ShareUncheckedUpdateInput,
-) {
-  return prisma.client.share.update({
-    where: {
-      id: shareId,
-    },
-    data,
-  });
+export async function updateShare(shareId: string, data: any) {
+  return db
+    .update(schema.share)
+    .set(data)
+    .where(eq(schema.share.shareId, shareId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function deleteShare(shareId: string) {
-  return prisma.client.share.delete({ where: { id: shareId } });
+  return db
+    .delete(schema.share)
+    .where(eq(schema.share.shareId, shareId))
+    .returning()
+    .all()
+    .then(r => r[0]);
 }
 
 export async function deleteSharesByEntityId(entityId: string) {
-  return prisma.client.share.deleteMany({
-    where: {
-      entityId,
-    },
-  });
+  return db
+    .delete(schema.share)
+    .where(eq(schema.share.entityId, entityId))
+    .run();
 }
