@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const teamsWithSubscription = await Promise.all(
       teams.map(async (team: any) => {
-        const teamAccount = await fetchTeam(team.id);
+        const teamAccount = await fetchTeam(team.teamId);
         return {
           ...team,
           subscription: teamAccount

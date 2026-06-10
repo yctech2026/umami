@@ -60,7 +60,7 @@ export const website = sqliteTable('website', {
   createdAt: text('created_at').$defaultFn(() => sql`(datetime('now'))`),
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
-  replayEnabled: integer('replay_enabled', { mode: 'boolean' }).notNull().$default(false),
+  replayEnabled: integer('replay_enabled', { mode: 'boolean' }).notNull().$defaultFn(() => false),
   replayConfig: text('replay_config', { mode: 'json' }),
 }, (table) => [
   index('website_user_id_idx').on(table.userId),
@@ -95,7 +95,7 @@ export const websiteEvent = sqliteTable('website_event', {
   ttclid: text('ttclid'),
   liFatId: text('li_fat_id'),
   twclid: text('twclid'),
-  eventType: integer('event_type').notNull().$default(1),
+  eventType: integer('event_type').notNull().$defaultFn(() => 1),
   eventName: text('event_name'),
   tag: text('tag'),
   hostname: text('hostname'),

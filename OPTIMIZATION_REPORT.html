@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Umami Cloudflare 适配优化报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-2">Umami Cloudflare Workers 适配优化报告</h1>
+        <p class="text-gray-500 mb-8">Next.js 16.2.6 → Cloudflare Workers Free 部署 | 最终 gzip: 2.33 MB</p>
+
+        <!-- 概述 -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">📊 总览</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-green-600">22→11</div>
+                    <div class="text-sm text-gray-600">MB raw (-50%)</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-green-600">4.90→2.33</div>
+                    <div class="text-sm text-gray-600">MB gzip (-52.4%)</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-blue-600">15</div>
+                    <div class="text-sm text-gray-600">死依赖已移除</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-purple-600">14</div>
+                    <div class="text-sm text-gray-600">轮优化迭代</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 优化历程时间线 -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">📅 优化历程</h2>
+            
+            <div class="space-y-6">
+                <div class="border-l-4 border-red-500 pl-4">
+                    <h3 class="font-semibold text-lg">第一阶段：代码改造（28 项不兼容问题）</h3>
+                    <p class="text-sm text-gray-500">Prisma → Drizzle、bcryptjs → Web Crypto、jose、crypto.randomUUID()</p>
+                    <ul class="mt-2 text-sm text-gray-600 space-y-1">
+                        <li>✅ Prisma Schema → Drizzle Schema（17 表 + relations）</li>
+                        <li>✅ PrismaClient → DrizzleD1Database 实例</li>
+                        <li>✅ bcryptjs → PBKDF2-SHA-256 + Pepper 三层防御</li>
+                        <li>✅ uuid npm → crypto.randomUUID()</li>
+                        <li>✅ jsonwebtoken → jose（已兼容）</li>
+                    </ul>
+                </div>
+
+                <div class="border-l-4 border-yellow-500 pl-4">
+                    <h3 class="font-semibold text-lg">第二阶段：首页空白诊断（3 个连环 bug）</h3>
+                    <p class="text-sm text-gray-500">Turbopack workspace root → getBoolEnv → currentVersion</p>
+                    <ul class="mt-2 text-sm text-gray-600 space-y-1">
+                        <li>🐛 pnpm-workspace.yaml packages: ['**'] 匹配到上级 lock 文件</li>
+                        <li>🐛 getBoolEnv 中 !!'false' = true（JavaScript 经典坑）</li>
+                        <li>🐛 getEnvString('currentVersion') 无默认值，客户端 hydration 报错</li>
+                    </ul>
+                </div>
+
+                <div class="border-l-4 border-orange-500 pl-4">
+                    <h3 class="font-semibold text-lg">第三阶段：主题样式修复</h3>
+                    <p class="text-sm text-gray-500">CSS 选择器特异性冲突 → :where(:root) 降权</p>
+                </div>
+
+                <div class="border-l-4 border-blue-500 pl-4">
+                    <h3 class="font-semibold text-lg">第四阶段：Bundle 体积优化（14 项并行）</h3>
+                    <p class="text-sm text-gray-500">Webpack 替代 Turbopack + 死依赖清理 + 配置优化</p>
+
+                    <div class="overflow-x-auto mt-3">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="text-left p-2">轮次</th>
+                                    <th class="text-left p-2">操作</th>
+                                    <th class="text-right p-2">Raw</th>
+                                    <th class="text-right p-2">Gzip</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-t"><td class="p-2">原始</td><td class="p-2">—</td><td class="text-right p-2">22.00 MB</td><td class="text-right p-2">4.90 MB</td></tr>
+                                <tr class="border-t"><td class="p-2">①</td><td class="p-2">删减 locale + 移除 pg + bcryptjs</td><td class="text-right p-2">—</td><td class="text-right p-2">4.53 MB</td></tr>
+                                <tr class="border-t"><td class="p-2">②</td><td class="p-2">8 个死依赖 + debug 排除 + minify + images.unoptimized</td><td class="text-right p-2">—</td><td class="text-right p-2">4.41 MB</td></tr>
+                                <tr class="border-t"><td class="p-2">③</td><td class="p-2">knip 发现 7 个死依赖</td><td class="text-right p-2">—</td><td class="text-right p-2">4.41 MB</td></tr>
+                                <tr class="border-t"><td class="p-2">④</td><td class="p-2">删除 Redis 缓存层（10 个文件）</td><td class="text-right p-2">—</td><td class="text-right p-2">4.41 MB</td></tr>
+                                <tr class="border-t font-semibold bg-green-50"><td class="p-2">⑤</td><td class="p-2">❗ Webpack 替代 Turbopack</td><td class="text-right p-2">19.65 MB</td><td class="text-right p-2">3.66 MB</td></tr>
+                                <tr class="border-t font-semibold bg-green-50"><td class="p-2">⑥</td><td class="p-2">serverExternalPackages + bcryptjs 清理</td><td class="text-right p-2">11.00 MB</td><td class="text-right p-2">2.33 MB ✅</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已做的优化清单 -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">✅ 完整优化清单（14 项）</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <div class="p-2 bg-green-50 rounded">✅ Webpack 替代 Turbopack</div>
+                <div class="p-2 bg-green-50 rounded">✅ 移除 15 个死依赖</div>
+                <div class="p-2 bg-green-50 rounded">✅ 删减 locale 国际化数据</div>
+                <div class="p-2 bg-green-50 rounded">✅ bcryptjs → Web Crypto PBKDF2</div>
+                <div class="p-2 bg-green-50 rounded">✅ uuid npm → crypto.randomUUID()</div>
+                <div class="p-2 bg-green-50 rounded">✅ jsonwebtoken → jose</div>
+                <div class="p-2 bg-green-50 rounded">✅ serverMinification: true</div>
+                <div class="p-2 bg-green-50 rounded">✅ images.unoptimized: true</div>
+                <div class="p-2 bg-green-50 rounded">✅ optimizePackageImports</div>
+                <div class="p-2 bg-green-50 rounded">✅ serverExternalPackages: @libsql/client</div>
+                <div class="p-2 bg-green-50 rounded">✅ nodejs_compat 标志</div>
+                <div class="p-2 bg-green-50 rounded">✅ 删除 Redis 内存缓存层</div>
+                <div class="p-2 bg-green-50 rounded">✅ 排除 debug 库</div>
+                <div class="p-2 bg-green-50 rounded">✅ Prisma → Drizzle ORM</div>
+            </div>
+        </div>
+
+        <!-- 最终架构 -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">🏗️ 最终部署架构</h2>
+            <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs leading-relaxed">
+Cloudflare Workers Free
+  ┌─────────────────────────────────────┐
+  │  handler.mjs (2.33 MB gzip)         │
+  │  ├─ Next.js 16.2.6 (Webpack)       │
+  │  ├─ Drizzle ORM + D1               │
+  │  ├─ jose + Web Crypto              │
+  │  └─ 57 页面 / 95 API 路由          │
+  └─────────────────────────────────────┘
+          │              │
+          ▼              ▼
+  ┌────────────┐  ┌────────────┐
+  │ D1 Database │  │ 604 静态   │
+  │ (18 张表)   │  │  Edge 缓存  │
+  └────────────┘  └────────────┘
+──────────保护层──────────────
+  Pepper (env secret)
+  Rate Limiting (补偿)
+  PBKDF2-SHA-256 x 10,000
+  Constant-time comparison
+</pre>
+        </div>
+
+        <div class="text-center text-gray-400 text-sm py-4">
+            Doforu AI · 2026
+        </div>
+    </div>
+</body>
+</html>

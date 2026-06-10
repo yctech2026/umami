@@ -3,7 +3,6 @@ import * as schema from '../../../drizzle/schema';
 import { getBoolEnv } from '@/lib/env';
 import { ROLES } from '@/lib/constants';
 import prisma from '@/lib/prisma';
-import redis from '@/lib/redis';
 import type { QueryFilters } from '@/lib/types';
 
 export async function findWebsite(criteria: { where?: Record<string, any> }) {
@@ -412,7 +411,6 @@ export async function updateWebsite(
 
 export async function resetWebsite(websiteId: string) {
   const db = prisma.client;
-  const cloudMode = getBoolEnv('CLOUD_MODE');
 
   return prisma.transaction(
     async (tx: typeof db) => {
@@ -437,13 +435,7 @@ export async function resetWebsite(websiteId: string) {
     {
       timeout: 30000,
     },
-  ).then(async data => {
-    if (cloudMode) {
-      await redis.client.set(`website:${websiteId}`, data);
-    }
-
-    return data;
-  });
+  );
 }
 
 export async function deleteWebsite(websiteId: string) {
@@ -483,13 +475,7 @@ export async function deleteWebsite(websiteId: string) {
     {
       timeout: 30000,
     },
-  ).then(async data => {
-    if (cloudMode) {
-      await redis.client.del(`website:${websiteId}`);
-    }
-
-    return data;
-  });
+  );
 }
 
 export async function getWebsiteCount(userId: string) {

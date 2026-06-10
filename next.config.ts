@@ -197,18 +197,35 @@ export default withNextIntl({
     selfRecord,
   },
   basePath,
-  // output removed - Cloudflare OpenNext adapter handles deployment
+  output: 'standalone',
+  serverExternalPackages: ['@libsql/client', '@libsql/isomorphic-ws'],
+  experimental: {
+    serverMinification: true,
+    optimizePackageImports: [
+      'immer',
+      'lucide-react',
+      'react-icons',
+      'recharts',
+      'date-fns',
+      '@tanstack/react-query',
+      'zustand',
+    ],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
   devIndicators: false,
+  images: {
+    unoptimized: true, // Cloudflare Workers 不支持图片优化
+  },
   /**
-   * Turbopack workspace root 修复：
-   * 显式指定 root 为项目目录，防止 Turbopack 向上扫描到
-   * /Users/alex/package-lock.json 后误判 workspace root。
+   * Webpack 配置（显式设置后 Next.js 将使用 Webpack 而非 Turbopack）
    */
-  turbopack: {
-    root: process.cwd(),
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.optimization.minimize = true;
+    }
+    return config;
   },
   async headers() {
     return headers;
@@ -231,8 +248,5 @@ export default withNextIntl({
   },
 });
 
-// 仅在非 Turbopack 模式下初始化 OpenNext Cloudflare Dev
-// Turbopack + OpenNext 同时使用会导致 React 多实例冲突
-if (!process.env.TURBOPACK) {
-  initOpenNextCloudflareForDev();
-}
+// 使用 Webpack 时正常初始化 OpenNext Cloudflare Dev
+initOpenNextCloudflareForDev();

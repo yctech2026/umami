@@ -10,14 +10,14 @@ export function BoardDesignHeader() {
 
   const handleSave = async () => {
     await saveBoard();
-    if (board.id) {
-      router.push(renderUrl(`/boards/${board.id}`));
+    if (board.boardId) {
+      router.push(renderUrl(`/boards/${board.boardId}`));
     }
   };
 
   const handleCancel = () => {
-    if (board.id) {
-      router.push(renderUrl(`/boards/${board.id}`));
+    if (board.boardId) {
+      router.push(renderUrl(`/boards/${board.boardId}`));
     } else {
       router.push(renderUrl('/boards'));
     }

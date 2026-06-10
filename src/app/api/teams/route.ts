@@ -3,7 +3,6 @@ import { getBoolEnv } from '@/lib/env';
 import { uuid } from '@/lib/crypto';
 import { getRandomChars } from '@/lib/generate';
 import { fetchAccount } from '@/lib/load';
-import redis from '@/lib/redis';
 import { getQueryFilters, parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams } from '@/lib/schema';
@@ -58,23 +57,7 @@ export async function POST(request: Request) {
     teamOwnerId,
   );
 
-  if (getBoolEnv('CLOUD_MODE') && redis.enabled) {
-    const account = await fetchAccount(teamOwnerId);
-
-    if (account) {
-      await redis.client.set(
-        `team:${teamId}`,
-        {
-          teamOwnerId,
-          isPro: account.isPro || false,
-          isBusiness: account.isBusiness || false,
-          isNoBilling: account.isNoBilling || false,
-          hasSubscription: account.hasSubscription || false,
-        },
-        60 * 60 * 24 * 90,
-      );
-    }
-  }
+  // Cloud mode team caching removed (redis dependency eliminated)
 
   return json(team);
 }

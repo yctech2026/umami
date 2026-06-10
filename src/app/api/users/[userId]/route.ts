@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
   const data: any = {};
 
   if (password) {
-    data.password = hashPassword(password);
+    data.password = await hashPassword(password);
   }
 
   // Only admin can change these fields

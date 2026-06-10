@@ -1,8 +1,7 @@
 import debug from 'debug';
 import { ROLE_PERMISSIONS, ROLES, SHARE_CONTEXT_HEADER, SHARE_TOKEN_HEADER } from '@/lib/constants';
-import { createAuthKey, secret } from '@/lib/crypto';
+import { secret } from '@/lib/crypto';
 import { createSecureToken, parseSecureToken, parseToken } from '@/lib/jwt';
-import redis from '@/lib/redis';
 import { ensureArray } from '@/lib/utils';
 import { getUser } from '@/queries/prisma/user';
 
@@ -20,19 +19,13 @@ export async function checkAuth(request: Request) {
   const shareToken = await parseShareToken(request);
 
   let user = null;
-  const { userId, authKey } = payload || {};
+  const { userId } = payload || {};
 
   if (userId) {
     user = await getUser(userId);
-  } else if (redis.enabled && authKey) {
-    const key = await redis.client.get(authKey);
-
-    if (key?.userId) {
-      user = await getUser(key.userId);
-    }
   }
 
-  log({ token, payload, authKey, shareToken, user });
+  log({ token, payload, shareToken, user });
 
   if (!user?.id && !shareToken) {
     log('User not authorized');
@@ -53,24 +46,13 @@ export async function checkAuth(request: Request) {
 
   return {
     token,
-    authKey,
     shareToken,
     user,
   };
 }
 
-export async function saveAuth(data: any, expire = 0) {
-  const authKey = `auth:${createAuthKey()}`;
-
-  if (redis.enabled) {
-    await redis.client.set(authKey, data);
-
-    if (expire) {
-      await redis.client.expire(authKey, expire);
-    }
-  }
-
-  return createSecureToken({ authKey }, await secret());
+export async function saveAuth(data: any, _expire = 0) {
+  return createSecureToken(data, await secret());
 }
 
 export async function hasPermission(role: string, permission: string | string[]) {

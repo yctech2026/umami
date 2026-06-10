@@ -53,6 +53,7 @@
     "node_modules",
     "./cypress.config.ts",
     "cypress",
-    "scripts/seed"
+    "scripts/seed",
+    "scripts"
   ]
 }

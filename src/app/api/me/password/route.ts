@@ -21,11 +21,11 @@ export async function POST(request: Request) {
 
   const user = await getUser(userId, { includePassword: true });
 
-  if (!checkPassword(currentPassword, user.password)) {
+  if (!(await checkPassword(currentPassword, user.password))) {
     return badRequest({ message: 'Current password is incorrect' });
   }
 
-  const password = hashPassword(newPassword);
+  const password = await hashPassword(newPassword);
 
   const updated = await updateUser(userId, { password });
 

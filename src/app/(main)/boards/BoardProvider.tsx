@@ -1,7 +1,7 @@
 'use client';
 import { Loading, useToast } from '@umami/react-zen';
 import { createContext, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '@/lib/crypto';
 import { useApi, useMessages, useModified, useNavigation } from '@/components/hooks';
 import { BOARD_TYPES, getBoardType } from '@/lib/boards';
 import { useBoardQuery } from '@/components/hooks/queries/useBoardQuery';
@@ -92,8 +92,8 @@ export function BoardProvider({
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: (boardData: Partial<Board>) => {
-      if (boardData.id) {
-        return post(`/boards/${boardData.id}`, boardData);
+      if (boardData.boardId) {
+        return post(`/boards/${boardData.boardId}`, boardData);
       }
       return post('/boards', {
         ...boardData,
@@ -132,10 +132,10 @@ export function BoardProvider({
     toast(t(messages.saved));
     touch('boards');
 
-    if (currentBoard.id) {
-      touch(`board:${currentBoard.id}`);
-    } else if (result?.id) {
-      router.push(renderUrl(`/boards/${result.id}`));
+    if (currentBoard.boardId) {
+      touch(`board:${currentBoard.boardId}`);
+    } else if (result?.boardId) {
+      router.push(renderUrl(`/boards/${result.boardId}`));
     }
 
     return result;

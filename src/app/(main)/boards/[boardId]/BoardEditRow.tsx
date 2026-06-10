@@ -7,7 +7,7 @@ import {
   Panel as ResizablePanel,
   Separator,
 } from 'react-resizable-panels';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '@/lib/crypto';
 import { useBoard } from '@/components/hooks';
 import { ChevronDown, GripVertical, Minus, Plus } from '@/components/icons';
 import type { BoardColumn as BoardColumnType, BoardComponentConfig } from '@/lib/types';

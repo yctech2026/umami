@@ -9,7 +9,7 @@ export function BoardAddButton() {
   const { teamId, router, renderUrl } = useNavigation();
 
   const handleSave = (board: Board) => {
-    router.push(renderUrl(`/boards/${board.id}/design`, false));
+    router.push(renderUrl(`/boards/${board.boardId}/design`, false));
   };
 
   return (

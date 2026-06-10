@@ -2,7 +2,7 @@ import { Box, Button, Icon, Row, Tooltip, TooltipTrigger } from '@umami/react-ze
 import { produce } from 'immer';
 import { Fragment, useEffect, useRef } from 'react';
 import { Group, type GroupImperativeHandle, Panel, Separator } from 'react-resizable-panels';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '@/lib/crypto';
 import { useBoard } from '@/components/hooks';
 import { GripHorizontal, Plus } from '@/components/icons';
 import { getBoardEntity, getBoardType, requiresBoardEntity } from '@/lib/boards';

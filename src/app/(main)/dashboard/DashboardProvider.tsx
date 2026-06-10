@@ -1,7 +1,7 @@
 'use client';
 import { Loading, useToast } from '@umami/react-zen';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '@/lib/crypto';
 import { BoardContext, type LayoutGetter } from '@/app/(main)/boards/BoardProvider';
 import { getComponentDefinition } from '@/app/(main)/boards/boardComponentRegistry';
 import { useApi, useDashboardQuery, useMessages, useModified } from '@/components/hooks';

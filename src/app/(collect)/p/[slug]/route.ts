@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/send/route';
 import type { Pixel } from '@/lib/drizzle-types';
-import redis from '@/lib/redis';
 import { notFound } from '@/lib/response';
 import { findPixel } from '@/queries/prisma';
 
@@ -17,40 +16,20 @@ for (let i = 0; i < binaryStr.length; i++) {
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  let pixel: Pixel;
+  const pixel: Pixel = await findPixel({
+    where: {
+      slug,
+    },
+  });
 
-  if (redis.enabled) {
-    pixel = await redis.client.fetch(
-      `pixel:${slug}`,
-      async () => {
-        return findPixel({
-          where: {
-            slug,
-          },
-        });
-      },
-      86400,
-    );
-
-    if (!pixel) {
-      return notFound();
-    }
-  } else {
-    pixel = await findPixel({
-      where: {
-        slug,
-      },
-    });
-
-    if (!pixel) {
-      return notFound();
-    }
+  if (!pixel) {
+    return notFound();
   }
 
   const payload = {
     type: 'event',
     payload: {
-      pixel: pixel.id,
+      pixel: pixel.pixelId,
       url: request.url,
       referrer: request.headers.get("referer") || undefined,
     },

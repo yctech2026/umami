@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const user = await createUser({
     id: id || uuid(),
     username,
-    password: hashPassword(password),
+    password: await hashPassword(password),
     role: role ?? ROLES.user,
   });
 

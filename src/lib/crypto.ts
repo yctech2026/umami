@@ -1,6 +1,5 @@
 import { startOfDay, startOfMonth, startOfWeek } from 'date-fns';
-import { v4, v5, v7 } from 'uuid';
-import { getEnvString, getEnvBool } from '@/lib/env';
+import { getEnvString } from '@/lib/env';
 
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 16;
@@ -243,12 +242,8 @@ export async function secret(): Promise<string> {
   return hash(getEnvString('APP_SECRET') || getEnvString('DATABASE_URL'));
 }
 
-export async function uuid(...args: any): Promise<string> {
-  if (args.length) {
-    return v5(await hash(...args, await secret()), v5.DNS);
-  }
-
-  return getEnvBool('USE_UUIDV7') ? v7() : v4();
+export function uuid(...args: any): string {
+  return crypto.randomUUID();
 }
 
 export function createAuthKey(): string {

@@ -36,7 +36,7 @@ function PixelEditHeader() {
   return (
     <>
       <Column marginTop="6">
-        <Link href={renderUrl(`/pixels/${pixel.id}`)}>
+        <Link href={renderUrl(`/pixels/${pixel.pixelId}`)}>
           <IconLabel icon={<ArrowLeft />} label={t(labels.pixel)} />
         </Link>
       </Column>

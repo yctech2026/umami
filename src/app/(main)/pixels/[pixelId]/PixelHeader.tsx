@@ -10,7 +10,7 @@ export function PixelHeader({ showActions = true }: { showActions?: boolean }) {
 
   return (
     <PageHeader title={pixel.name} icon={<Grid2x2 />}>
-      {showActions && pixel.id && <PixelHeaderActions pixelId={pixel.id} slug={pixel.slug} />}
+      {showActions && pixel.pixelId && <PixelHeaderActions pixelId={pixel.pixelId} slug={pixel.slug} />}
     </PageHeader>
   );
 }

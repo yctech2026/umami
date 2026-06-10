@@ -15,7 +15,7 @@ export function SimpleShareCreateForm({
   const { touch } = useModified();
   const { t, labels, getErrorMessage } = useMessages();
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const handleSubmit = async (data: { name: string }) => {
     setIsPending(true);
@@ -29,7 +29,7 @@ export function SimpleShareCreateForm({
       touch('shares');
       onSave?.();
     } catch (e) {
-      setError(e);
+      setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
       setIsPending(false);
     }

@@ -36,7 +36,7 @@ function LinkEditHeader() {
   return (
     <>
       <Column marginTop="6">
-        <Link href={renderUrl(`/links/${link.id}`)}>
+        <Link href={renderUrl(`/links/${link.linkId}`)}>
           <IconLabel icon={<ArrowLeft />} label={t(labels.link)} />
         </Link>
       </Column>

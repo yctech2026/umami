@@ -2,6 +2,21 @@
   --font-family: var(--font-inter), sans-serif;
   --primary: oklch(62.3% 0.214 259.815);
   --primary-foreground: oklch(98.5% 0 0);
+  --background-color: #ffffff;
+}
+
+/* 主题变量 fallback——:where() 特异性为 0，不会覆盖 [data-theme="dark"] 的规则 */
+:where(:root) {
+  --text-primary: oklch(20.5% 0 0);
+  --text-muted: oklch(55.6% 0 0);
+  --text-disabled: oklch(70.8% 0 0);
+  --surface-base: #ffffff;
+  --surface-raised: oklch(98.5% 0 0);
+  --surface-muted: oklch(96% 0 0);
+  --border-default: oklch(87% 0 0);
+  --border-muted: oklch(92.2% 0 0);
+  --border-strong: oklch(70.8% 0 0);
+  --interactive-bg: oklch(95% 0 0);
 }
 
 html,

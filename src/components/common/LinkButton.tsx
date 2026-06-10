@@ -10,6 +10,7 @@ export interface LinkButtonProps extends ButtonProps {
   variant?: any;
   prefetch?: boolean;
   asAnchor?: boolean;
+  title?: string;
   children?: ReactNode;
 }
 

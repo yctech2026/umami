@@ -10,7 +10,7 @@ export function LinkHeader({ showActions = true }: { showActions?: boolean }) {
 
   return (
     <PageHeader title={link.name} description={link.url} icon={<Link />}>
-      {showActions && link.id && <LinkHeaderActions linkId={link.id} slug={link.slug} />}
+      {showActions && link.linkId && <LinkHeaderActions linkId={link.linkId} slug={link.slug} />}
     </PageHeader>
   );
 }

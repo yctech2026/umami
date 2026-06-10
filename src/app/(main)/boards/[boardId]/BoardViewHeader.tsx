@@ -25,12 +25,12 @@ export function BoardViewHeader({
     <PageHeader title={board?.name} description={board?.description}>
       <Row alignItems="center" gap>
         {showEntityBadge && entityBadge && <BoardEntityBadge {...entityBadge} />}
-        {showActions && board?.id && (
+        {showActions && board?.boardId && (
           <>
-            <LinkButton href={renderUrl(`/boards/${board.id}/design`, false)}>
+            <LinkButton href={renderUrl(`/boards/${board.boardId}/design`, false)}>
               <IconLabel icon={<LayoutDashboard />}>Design</IconLabel>
             </LinkButton>
-            <LinkButton href={renderUrl(`/boards/${board.id}/edit`, false)}>
+            <LinkButton href={renderUrl(`/boards/${board.boardId}/edit`, false)}>
               <IconLabel icon={<Edit />}>{t(labels.edit)}</IconLabel>
             </LinkButton>
           </>

@@ -1,16 +1,9 @@
 import type { Session, Website } from '@/lib/drizzle-types';
-import redis from '@/lib/redis';
 import { getWebsite } from '@/queries/prisma';
 import { getWebsiteSession } from '@/queries/sql';
 
 export async function fetchWebsite(websiteId: string): Promise<Website> {
-  let website = null;
-
-  if (redis.enabled) {
-    website = await redis.client.fetch(`website:${websiteId}`, () => getWebsite(websiteId), 86400);
-  } else {
-    website = await getWebsite(websiteId);
-  }
+  const website = (await getWebsite(websiteId)) as unknown as Website;
 
   if (!website || website.deletedAt) {
     return null;
@@ -20,17 +13,7 @@ export async function fetchWebsite(websiteId: string): Promise<Website> {
 }
 
 export async function fetchSession(websiteId: string, sessionId: string): Promise<Session> {
-  let session = null;
-
-  if (redis.enabled) {
-    session = await redis.client.fetch(
-      `session:${sessionId}`,
-      () => getWebsiteSession(websiteId, sessionId),
-      86400,
-    );
-  } else {
-    session = await getWebsiteSession(websiteId, sessionId);
-  }
+  const session = await getWebsiteSession(websiteId, sessionId);
 
   if (!session) {
     return null;
@@ -39,14 +22,10 @@ export async function fetchSession(websiteId: string, sessionId: string): Promis
   return session;
 }
 
-export async function fetchAccount(userId: string) {
-  const account = await redis.client.get(`account:${userId}`);
-
-  return account;
+export async function fetchAccount(_userId: string) {
+  return null;
 }
 
-export async function fetchTeam(teamId: string) {
-  const team = await redis.client.get(`team:${teamId}`);
-
-  return team;
+export async function fetchTeam(_teamId: string) {
+  return null;
 }

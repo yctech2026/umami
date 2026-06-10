@@ -5,7 +5,6 @@ import { createToken } from '@/lib/jwt';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../../../../../drizzle/schema';
 import prisma from '@/lib/prisma';
-import redis from '@/lib/redis';
 import { json, notFound } from '@/lib/response';
 import type { BoardParameters, WhiteLabel } from '@/lib/types';
 import { getBoard, getLink, getPixel, getShareByCode, getWebsite } from '@/queries/prisma';
@@ -35,17 +34,7 @@ async function getAccountId(entity: { userId?: string; teamId?: string }): Promi
   return null;
 }
 
-async function getWhiteLabel(accountId: string): Promise<WhiteLabel | null> {
-  if (!redis.enabled) {
-    return null;
-  }
-
-  const data = await redis.client.get(`white-label:${accountId}`);
-
-  if (data) {
-    return data as WhiteLabel;
-  }
-
+async function getWhiteLabel(_accountId: string): Promise<WhiteLabel | null> {
   return null;
 }
 

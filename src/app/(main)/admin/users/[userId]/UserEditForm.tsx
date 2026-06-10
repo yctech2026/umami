@@ -23,7 +23,7 @@ export function UserEditForm({ userId, onSave }: { userId: string; onSave?: () =
       onSuccess: async () => {
         toast(t(messages.saved));
         touch('users');
-        touch(`user:${user.id}`);
+        touch(`user:${user.userId}`);
         onSave?.();
       },
     });
@@ -44,7 +44,7 @@ export function UserEditForm({ userId, onSave }: { userId: string; onSave?: () =
         <PasswordField autoComplete="new-password" data-test="input-password" />
       </FormField>
 
-      {user.id !== login.id && (
+      {user.userId !== login.id && (
         <FormField name="role" label={t(labels.role)} rules={{ required: t(labels.required) }}>
           <Select defaultValue={user.role}>
             <ListItem id={ROLES.viewOnly} data-test="dropdown-item-viewOnly">
