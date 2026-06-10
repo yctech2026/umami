@@ -38,7 +38,14 @@ export default function ({ children }) {
         <meta name="robots" content="noindex,nofollow" />
       </head>
       <body>
-        <Suspense>
+        <Suspense fallback={<div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          width: '100vw',
+          background: '#fafafa',
+        }}>加载中...</div>}>
           <Providers>{children}</Providers>
         </Suspense>
       </body>

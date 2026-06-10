@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Column, Loading } from '@umami/react-zen';
 import { LAST_TEAM_CONFIG } from '@/lib/constants';
 import { getItem } from '@/lib/storage';
 
@@ -17,5 +18,10 @@ export default function RootPage() {
     }
   }, [router]);
 
-  return null;
+  // Display loading spinner while redirecting (prevents blank white screen)
+  return (
+    <Column position="relative" height="100vh" width="100vw">
+      <Loading icon="spinner" placement="center" />
+    </Column>
+  );
 }
