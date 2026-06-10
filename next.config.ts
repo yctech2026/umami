@@ -1,3 +1,4 @@
+import path from 'path';
 import createNextIntlPlugin from 'next-intl/plugin';
 import pkg from './package.json' with { type: 'json' };
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
@@ -186,6 +187,7 @@ if (isProd && cloudMode) {
 /** @type {import('next').NextConfig} */
 export default withNextIntl({
   reactStrictMode: false,
+
   env: {
     basePath,
     cloudMode,
@@ -197,7 +199,8 @@ export default withNextIntl({
     selfRecord,
   },
   basePath,
-  output: 'standalone',
+  output: isProd ? 'standalone' : undefined,
+  transpilePackages: ['@umami/react-zen'],
   serverExternalPackages: ['@libsql/client', '@libsql/isomorphic-ws'],
   experimental: {
     serverMinification: true,
@@ -218,15 +221,27 @@ export default withNextIntl({
   images: {
     unoptimized: true, // Cloudflare Workers 不支持图片优化
   },
-  /**
-   * Webpack 配置（显式设置后 Next.js 将使用 Webpack 而非 Turbopack）
-   */
-  webpack: (config, { isServer }) => {
+  turbopack: {
+    root: __dirname,
+  },
+  webpack: (config, { isServer, webpack }) => {
+    // 移除默认的 CSS exclude 规则，让 Next.js 内置 CSS 支持正常工作
+    // @umami/react-zen 在 transpilePackages 中，其 CSS 会被 Next.js 自动处理
+    const cssRules = config.module.rules.filter(
+      rule => rule.test && rule.test.toString().includes('\\.css$')
+    );
+    for (const rule of cssRules) {
+      if (rule.exclude) {
+        rule.exclude = undefined;
+      }
+    }
+
     if (isServer) {
       config.optimization.minimize = true;
     }
     return config;
   },
+
   async headers() {
     return headers;
   },

@@ -371,7 +371,16 @@ export async function createWebsite(
   if (data.replayConfig !== undefined) values.replayConfig = data.replayConfig;
 
   const columns = Object.keys(values);
-  const colList = columns.join(', ');
+  // Map camelCase Drizzle field names to snake_case DB column names
+  const columnMap: Record<string, string> = {
+    websiteId: 'website_id',
+    userId: 'user_id',
+    teamId: 'team_id',
+    createdBy: 'created_by',
+    replayEnabled: 'replay_enabled',
+    replayConfig: 'replay_config',
+  };
+  const colList = columns.map(c => columnMap[c] || c).join(', ');
   const paramList = columns.map(c => `{{${c}}}`).join(', ');
 
   return prisma
@@ -510,6 +519,7 @@ export async function attachShareIdToWebsite(website: Record<string, any>) {
 
   return {
     ...website,
+    id: website.id ?? website.websiteId,
     shareId: share?.slug ?? null,
   };
 }
@@ -527,7 +537,7 @@ export async function attachShareIdToWebsites(websites: {
   if (websiteIds.length === 0) {
     return {
       ...websites,
-      data: websites.data.map((website: any) => ({ ...website, shareId: null })),
+      data: websites.data.map((website: any) => ({ ...website, id: website.id ?? website.websiteId, shareId: null })),
     };
   }
 
@@ -553,6 +563,7 @@ export async function attachShareIdToWebsites(websites: {
     ...websites,
     data: websites.data.map((website: any) => ({
       ...website,
+      id: website.id ?? website.websiteId,
       shareId: shareByWebsiteId.get(website.id ?? website.websiteId) ?? null,
     })),
   };

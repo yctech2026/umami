@@ -22,7 +22,7 @@
     "strict": true,
     "strictNullChecks": false,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": false,
     "outDir": "./build",
     "paths": {

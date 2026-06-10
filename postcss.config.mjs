@@ -1,6 +1,8 @@
-export default {
+// /Users/alex/Desktop/umami/postcss.config.mjs
+const config = {
   plugins: {
     '@tailwindcss/postcss': {},
+    'postcss-import': {},
     'postcss-flexbugs-fixes': {},
     'postcss-preset-env': {
       autoprefixer: {
@@ -13,3 +15,5 @@ export default {
     },
   },
 };
+
+export default config;
