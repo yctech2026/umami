@@ -1,6 +1,6 @@
 import { getEnvString } from '@/lib/env';
 
-export const CURRENT_VERSION = getEnvString('currentVersion');
+export const CURRENT_VERSION = getEnvString('currentVersion', '3.1.0');
 export const AUTH_TOKEN = 'umami.auth';
 export const LOCALE_CONFIG = 'umami.locale';
 export const TIMEZONE_CONFIG = 'umami.timezone';
