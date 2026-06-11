@@ -4,7 +4,7 @@ import { ROLES } from '@/lib/constants';
 import { checkPassword } from '@/lib/password';
 import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
-import { getAllUserTeams, getUserByUsername } from '@/queries/prisma';
+import { getAllUserTeams, getUserByUsername } from '@/queries/drizzle';
 
 export async function POST(request: Request) {
   const schema = z.object({

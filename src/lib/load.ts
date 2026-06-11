@@ -1,5 +1,5 @@
 import type { Session, Website } from '@/lib/drizzle-types';
-import { getWebsite } from '@/queries/prisma';
+import { getWebsite } from '@/queries/drizzle';
 import { getWebsiteSession } from '@/queries/sql';
 
 export async function fetchWebsite(websiteId: string): Promise<Website> {

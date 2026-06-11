@@ -4,11 +4,11 @@ import { ENTITY_TYPE } from '@/lib/constants';
 import { uuid } from '@/lib/crypto';
 import { fetchAccount } from '@/lib/load';
 import { getQueryFilters, parseRequest } from '@/lib/request';
-import { json, unauthorized } from '@/lib/response';
+import { json, serverError, unauthorized } from '@/lib/response';
 import { pagingParams, searchParams } from '@/lib/schema';
 import { canCreateTeamWebsite, canCreateWebsite } from '@/permissions';
-import { createShare, createWebsite, getWebsiteCount } from '@/queries/prisma';
-import { getAllUserWebsitesIncludingTeamOwner, getUserWebsites } from '@/queries/prisma/website';
+import { createShare, createWebsite, getWebsiteCount } from '@/queries/drizzle';
+import { getAllUserWebsitesIncludingTeamOwner, getUserWebsites } from '@/queries/drizzle/website';
 
 const CLOUD_WEBSITE_LIMIT = 3;
 
@@ -37,65 +37,67 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const schema = z.object({
-    name: z.string().max(100),
-    domain: z.string().max(500),
-    shareId: z.string().max(50).nullable().optional(),
-    teamId: z.uuid().nullable().optional(),
-    id: z.uuid().nullable().optional(),
-  });
+  try {
+    const schema = z.object({
+      name: z.string().max(100),
+      domain: z.string().max(500),
+      shareId: z.string().max(50).nullable().optional(),
+      teamId: z.uuid().nullable().optional(),
+      id: z.uuid().nullable().optional(),
+      replayEnabled: z.boolean().optional(),
+    });
 
-  const { auth, body, error } = await parseRequest(request, schema);
+    const { auth, body, error } = await parseRequest(request, schema);
+    if (error) return error();
 
-  if (error) {
-    return error();
-  }
+    const { id, name, domain, shareId, teamId, replayEnabled } = body;
 
-  const { id, name, domain, shareId, teamId } = body;
-
-  if (getBoolEnv('CLOUD_MODE') && !teamId) {
-    const account = await fetchAccount(auth.user.userId);
-
-    if (!account?.hasSubscription) {
-      const count = await getWebsiteCount(auth.user.userId);
-
-      if (count >= CLOUD_WEBSITE_LIMIT) {
-        return unauthorized({ message: 'Website limit reached.' });
+    if (getBoolEnv('CLOUD_MODE') && !teamId) {
+      const account = await fetchAccount(auth.user.userId);
+      if (!account?.hasSubscription) {
+        const count = await getWebsiteCount(auth.user.userId);
+        if (count >= CLOUD_WEBSITE_LIMIT) {
+          return unauthorized({ message: 'Website limit reached.' });
+        }
       }
     }
+
+    if (
+      (teamId && !(await canCreateTeamWebsite(auth, teamId))) ||
+      !(await canCreateWebsite(auth))
+    ) {
+      return unauthorized();
+    }
+
+    const data: any = {
+      id: id ?? await uuid(),
+      createdBy: auth.user.userId,
+      name,
+      domain,
+      teamId,
+      replayEnabled,
+    };
+
+    if (!teamId) data.userId = auth.user.userId;
+
+    const website = await createWebsite(data);
+
+    const share = shareId
+      ? await createShare({
+          id: uuid(),
+          entityId: website.id,
+          shareType: ENTITY_TYPE.website,
+          name: website.name,
+          slug: shareId,
+          parameters: { overview: true, events: true },
+        })
+      : null;
+
+    return json({
+      ...website,
+      shareId: share?.slug ?? null,
+    });
+  } catch (error) {
+    return serverError({ message: 'Failed to create website' });
   }
-
-  if ((teamId && !(await canCreateTeamWebsite(auth, teamId))) || !(await canCreateWebsite(auth))) {
-    return unauthorized();
-  }
-
-  const data: any = {
-    id: id ?? await uuid(),
-    createdBy: auth.user.userId,
-    name,
-    domain,
-    teamId,
-  };
-
-  if (!teamId) {
-    data.userId = auth.user.userId;
-  }
-
-  const website = await createWebsite(data);
-
-  const share = shareId
-    ? await createShare({
-        id: uuid(),
-        entityId: website.id,
-        shareType: ENTITY_TYPE.website,
-        name: website.name,
-        slug: shareId,
-        parameters: { overview: true, events: true },
-      })
-    : null;
-
-  return json({
-    ...website,
-    shareId: share?.slug ?? null,
-  });
 }

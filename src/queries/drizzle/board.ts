@@ -1,7 +1,8 @@
 import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
+import { BOARD_TYPES } from '@/lib/boards';
 import type { QueryFilters } from '@/lib/types';
-import { getDrizzleClient } from '@/lib/drizzle-client';
+import { getDrizzleClient } from '@/lib/db';
 const DEFAULT_PAGE_SIZE = 50;
 
 let _db: any;
@@ -11,30 +12,30 @@ async function getDb(): Promise<any> {
   return _db;
 }
 
-export async function findLink(criteria: Record<string, any>) {
+export async function findBoard(criteria: Record<string, any>) {
   const conditions: any[] = [];
 
   if (criteria.where?.id) {
-    conditions.push(eq(schema.link.linkId, criteria.where.id));
+    conditions.push(eq(schema.board.boardId, criteria.where.id));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = (await getDb()).select().from(schema.link);
+  let query = (await getDb()).select().from(schema.board);
   if (whereClause) query = query.where(whereClause);
 
   return query.get();
 }
 
-export async function getLink(linkId: string) {
+export async function getBoard(boardId: string) {
   return (await getDb())
     .select()
-    .from(schema.link)
-    .where(eq(schema.link.linkId, linkId))
+    .from(schema.board)
+    .where(eq(schema.board.boardId, boardId))
     .get();
 }
 
-export async function getLinks(
+export async function getBoards(
   criteria: Record<string, any>,
   filters: QueryFilters = {},
 ) {
@@ -45,30 +46,31 @@ export async function getLinks(
   const conditions: any[] = [];
 
   if (criteria.where) {
-    const { userId, teamId, deletedAt } = criteria.where;
-    if (userId) conditions.push(eq(schema.link.userId, userId));
-    if (teamId) conditions.push(eq(schema.link.teamId, teamId));
-    if (deletedAt === null) conditions.push(isNull(schema.link.deletedAt));
+    const { userId, teamId, type } = criteria.where;
+    if (userId) conditions.push(eq(schema.board.userId, userId));
+    if (teamId) conditions.push(eq(schema.board.teamId, teamId));
+    if (type?.not) {
+      conditions.push(not(eq(schema.board.type, type.not)));
+    }
   }
 
   if (search) {
     conditions.push(
       or(
-        like(schema.link.name, `%${search}%`),
-        like(schema.link.url, `%${search}%`),
-        like(schema.link.slug, `%${search}%`),
+        like(schema.board.name, `%${search}%`),
+        like(schema.board.description, `%${search}%`),
       ),
     );
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = (await getDb()).select().from(schema.link);
+  let query = (await getDb()).select().from(schema.board);
   if (whereClause) query = query.where(whereClause);
 
   if (orderBy) {
     const dir = sortDescending ? desc : asc;
-    const col = (schema.link as any)[orderBy];
+    const col = (schema.board as any)[orderBy];
     if (col) query = query.orderBy(dir(col));
   }
 
@@ -78,7 +80,7 @@ export async function getLinks(
 
   const data = await query;
 
-  let countQuery = (await getDb()).select({ count: count() }).from(schema.link);
+  let countQuery = (await getDb()).select({ count: count() }).from(schema.board);
   if (whereClause) countQuery = countQuery.where(whereClause);
   const countResult = await countQuery.get();
 
@@ -92,52 +94,57 @@ export async function getLinks(
   };
 }
 
-export async function getUserLinks(userId: string, filters?: QueryFilters) {
-  return getLinks(
+export async function getUserBoards(userId: string, filters?: QueryFilters) {
+  return getBoards(
     {
       where: {
         userId,
-        deletedAt: null,
+        type: {
+          not: BOARD_TYPES.dashboard,
+        },
       },
     },
     filters,
   );
 }
 
-export async function getTeamLinks(teamId: string, filters?: QueryFilters) {
-  return getLinks(
+export async function getTeamBoards(teamId: string, filters?: QueryFilters) {
+  return getBoards(
     {
       where: {
         teamId,
+        type: {
+          not: BOARD_TYPES.dashboard,
+        },
       },
     },
     filters,
   );
 }
 
-export async function createLink(data: Record<string, any>) {
+export async function createBoard(data: Record<string, any>) {
   return (await getDb())
-    .insert(schema.link)
+    .insert(schema.board)
     .values(data)
     .returning()
     .all()
     .then(r => r[0]);
 }
 
-export async function updateLink(linkId: string, data: Record<string, any>) {
+export async function updateBoard(boardId: string, data: Record<string, any>) {
   return (await getDb())
-    .update(schema.link)
+    .update(schema.board)
     .set(data)
-    .where(eq(schema.link.linkId, linkId))
+    .where(eq(schema.board.boardId, boardId))
     .returning()
     .all()
     .then(r => r[0]);
 }
 
-export async function deleteLink(linkId: string) {
+export async function deleteBoard(boardId: string) {
   return (await getDb())
-    .delete(schema.link)
-    .where(eq(schema.link.linkId, linkId))
+    .delete(schema.board)
+    .where(eq(schema.board.boardId, boardId))
     .returning()
     .all()
     .then(r => r[0]);

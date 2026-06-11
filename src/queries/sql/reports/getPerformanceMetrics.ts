@@ -1,7 +1,7 @@
 import clickhouse from '@/lib/clickhouse';
 import { SESSION_COLUMNS } from '@/lib/constants';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 import type { PerformanceParameters } from './getPerformance';
 

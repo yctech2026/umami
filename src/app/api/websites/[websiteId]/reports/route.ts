@@ -3,7 +3,7 @@ import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams, reportTypeParam } from '@/lib/schema';
 import { canViewWebsite } from '@/permissions';
-import { getReports } from '@/queries/prisma';
+import { getReports } from '@/queries/drizzle';
 
 export async function GET(
   request: Request,

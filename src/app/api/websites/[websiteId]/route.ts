@@ -11,7 +11,7 @@ import {
   getShareByEntityId,
   getWebsite,
   updateWebsite,
-} from '@/queries/prisma';
+} from '@/queries/drizzle';
 
 export async function GET(
   request: Request,

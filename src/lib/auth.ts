@@ -3,7 +3,7 @@ import { ROLE_PERMISSIONS, ROLES, SHARE_CONTEXT_HEADER, SHARE_TOKEN_HEADER } fro
 import { secret } from '@/lib/crypto';
 import { createSecureToken, parseSecureToken, parseToken } from '@/lib/jwt';
 import { ensureArray } from '@/lib/utils';
-import { getUser } from '@/queries/prisma/user';
+import { getUser } from '@/queries/drizzle/user';
 
 const log = debug('umami:auth');
 

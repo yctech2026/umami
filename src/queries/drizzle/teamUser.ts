@@ -2,7 +2,7 @@ import type { Prisma } from '@/lib/drizzle-types';
 import { uuid } from '@/lib/crypto';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 
 type TeamUserFindManyArgs = Prisma.TeamUserFindManyArgs;

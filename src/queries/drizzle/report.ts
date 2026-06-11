@@ -1,7 +1,7 @@
 import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
 import type { QueryFilters } from '@/lib/types';
-import { getDrizzleClient } from '@/lib/drizzle-client';
+import { getDrizzleClient } from '@/lib/db';
 const DEFAULT_PAGE_SIZE = 50;
 
 let _db: any;

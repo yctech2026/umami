@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/send/route';
 import type { Link } from '@/lib/drizzle-types';
 import { notFound } from '@/lib/response';
-import { findLink } from '@/queries/prisma';
+import { findLink } from '@/queries/drizzle';
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

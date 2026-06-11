@@ -7,7 +7,7 @@ import { getQueryFilters, parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams } from '@/lib/schema';
 import { canCreateTeam } from '@/permissions';
-import { createTeam, getUserTeams } from '@/queries/prisma';
+import { createTeam, getUserTeams } from '@/queries/drizzle';
 
 export async function GET(request: Request) {
   const schema = z.object({

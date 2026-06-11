@@ -2,7 +2,7 @@ import clickhouse from '@/lib/clickhouse';
 import { uuid } from '@/lib/crypto';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import * as schema from '../../../../drizzle/schema';
 
 async function gzipAsync(data: Uint8Array): Promise<Uint8Array> {

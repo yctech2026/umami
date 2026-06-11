@@ -4,7 +4,7 @@ import { ROLES } from '@/lib/constants';
 import { uuid } from '@/lib/crypto';
 import { eq, and, isNull, inArray, sql } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { PageResult, QueryFilters } from '@/lib/types';
 
 type TeamFindManyArgs = Prisma.TeamFindManyArgs;

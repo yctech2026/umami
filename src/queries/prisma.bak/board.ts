@@ -2,7 +2,7 @@ import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from '
 import * as schema from '../../../drizzle/schema';
 import { BOARD_TYPES } from '@/lib/boards';
 import type { QueryFilters } from '@/lib/types';
-import { getDrizzleClient } from '@/lib/drizzle-client';
+import { getDrizzleClient } from '@/lib/db';
 const DEFAULT_PAGE_SIZE = 50;
 
 let _db: any;

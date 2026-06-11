@@ -1,6 +1,6 @@
 import clickhouse from '@/lib/clickhouse';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 
 const FUNCTION_NAME = 'getSessionReplays';

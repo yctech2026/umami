@@ -3,7 +3,7 @@ import { BOARD_TYPES, normalizeBoardType } from '@/lib/boards';
 import { parseRequest } from '@/lib/request';
 import { json, ok, serverError, unauthorized } from '@/lib/response';
 import { canDeleteBoard, canUpdateBoard, canViewBoard } from '@/permissions';
-import { deleteBoard, getBoard, updateBoard } from '@/queries/prisma';
+import { deleteBoard, getBoard, updateBoard } from '@/queries/drizzle';
 
 export async function GET(request: Request, { params }: { params: Promise<{ boardId: string }> }) {
   const { auth, error } = await parseRequest(request);

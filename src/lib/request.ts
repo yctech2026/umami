@@ -7,7 +7,7 @@ import { fetchAccount, fetchWebsite } from '@/lib/load';
 import { filtersArrayToObject } from '@/lib/params';
 import { badRequest, unauthorized } from '@/lib/response';
 import type { QueryFilters } from '@/lib/types';
-import { getWebsiteSegment } from '@/queries/prisma';
+import { getWebsiteSegment } from '@/queries/drizzle';
 import { getEnvBool } from '@/lib/env';
 
 export async function parseRequest(

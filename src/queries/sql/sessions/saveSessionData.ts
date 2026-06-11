@@ -6,7 +6,7 @@ import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../../../../drizzle/schema';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { DynamicData } from '@/lib/types';
 
 export interface SaveSessionDataArgs {

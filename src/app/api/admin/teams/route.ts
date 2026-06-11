@@ -3,7 +3,7 @@ import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams, searchParams } from '@/lib/schema';
 import { canViewAllTeams } from '@/permissions';
-import { getTeams } from '@/queries/prisma/team';
+import { getTeams } from '@/queries/drizzle/team';
 
 export async function GET(request: Request) {
   const schema = z.object({

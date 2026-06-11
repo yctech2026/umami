@@ -8,7 +8,7 @@ import { parseToken } from '@/lib/jwt';
 import { fetchAccount, fetchTeam } from '@/lib/load';
 import { parseRequest } from '@/lib/request';
 import { badRequest, forbidden, json, serverError } from '@/lib/response';
-import { getWebsite } from '@/queries/prisma';
+import { getWebsite } from '@/queries/drizzle';
 import { saveRecording } from '@/queries/sql';
 
 interface Cache {

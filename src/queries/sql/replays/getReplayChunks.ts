@@ -1,6 +1,6 @@
 import clickhouse from '@/lib/clickhouse';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 
 async function gunzipAsync(data: Uint8Array): Promise<Uint8Array> {
   const cs = new DecompressionStream('gzip');

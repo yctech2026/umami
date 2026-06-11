@@ -4,7 +4,7 @@ import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams, searchParams } from '@/lib/schema';
 import { canViewAllWebsites } from '@/permissions';
-import { getWebsites } from '@/queries/prisma/website';
+import { getWebsites } from '@/queries/drizzle/website';
 
 export async function GET(request: Request) {
   const schema = z.object({

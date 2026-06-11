@@ -1,7 +1,7 @@
 import clickhouse from '@/lib/clickhouse';
 import { DEFAULT_RESET_DATE } from '@/lib/constants';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 
 export async function getWebsiteDateRange(...args: [websiteId: string]) {
   return runQuery({

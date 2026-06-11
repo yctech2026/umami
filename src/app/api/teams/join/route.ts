@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ROLES } from '@/lib/constants';
 import { parseRequest } from '@/lib/request';
 import { badRequest, json, notFound } from '@/lib/response';
-import { createTeamUser, findTeam, getTeamUser } from '@/queries/prisma';
+import { createTeamUser, findTeam, getTeamUser } from '@/queries/drizzle';
 
 export async function POST(request: Request) {
   const schema = z.object({

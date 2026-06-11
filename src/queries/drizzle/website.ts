@@ -2,7 +2,7 @@ import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from '
 import * as schema from '../../../drizzle/schema';
 import { getBoolEnv } from '@/lib/env';
 import { ROLES } from '@/lib/constants';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 
 export async function findWebsite(criteria: { where?: Record<string, any> }) {
@@ -327,12 +327,10 @@ export async function getTeamWebsites(teamId: string, filters?: QueryFilters) {
   return attachShareIdToWebsites(result);
 }
 
-export async function createWebsite(
-  data: Record<string, any>,
-) {
-  const values: Record<string, any> = {};
+export async function createWebsite(data: Record<string, any>) {
+  const db = prisma.client;
 
-  // Map Prisma-style field names to Drizzle schema field names
+  const values: Record<string, any> = {};
   if (data.id) values.websiteId = data.id;
   if (data.name !== undefined) values.name = data.name;
   if (data.domain !== undefined) values.domain = data.domain;
@@ -342,26 +340,13 @@ export async function createWebsite(
   if (data.replayEnabled !== undefined) values.replayEnabled = data.replayEnabled;
   if (data.replayConfig !== undefined) values.replayConfig = data.replayConfig;
 
-  const columns = Object.keys(values);
-  // Map camelCase Drizzle field names to snake_case DB column names
-  const columnMap: Record<string, string> = {
-    websiteId: 'website_id',
-    userId: 'user_id',
-    teamId: 'team_id',
-    createdBy: 'created_by',
-    replayEnabled: 'replay_enabled',
-    replayConfig: 'replay_config',
-  };
-  const colList = columns.map(c => columnMap[c] || c).join(', ');
-  const paramList = columns.map(c => `{{${c}}}`).join(', ');
+  const result = await db
+    .insert(schema.website)
+    .values(values as any)
+    .returning()
+    .get();
 
-  return prisma
-    .rawQuery(
-      `INSERT INTO website (${colList}) VALUES (${paramList}) RETURNING *`,
-      values,
-      'createWebsite',
-    )
-    .then(r => r[0]);
+  return { ...result, id: result.websiteId };
 }
 
 export async function updateWebsite(

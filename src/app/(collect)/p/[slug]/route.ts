@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/send/route';
 import type { Pixel } from '@/lib/drizzle-types';
 import { notFound } from '@/lib/response';
-import { findPixel } from '@/queries/prisma';
+import { findPixel } from '@/queries/drizzle';
 
 const base64Str = 'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw';
 const binaryStr = atob(base64Str);

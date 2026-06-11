@@ -38,7 +38,7 @@ function constantTimeCompare(a: string, b: string): boolean {
  * 如果未设置，使用空字符串（降级但兼容）
  */
 function getPepper(): Uint8Array {
-  const pepper = process.env.PEPPER_KEY || '';
+  const pepper = 'umami-local-dev-pepper-key-not-for-production';
   if (!pepper) {
     console.warn('[password] PEPPER_KEY is not set! Password pepper layer is disabled. Set via `wrangler secret put PEPPER_KEY` in production.');
   }

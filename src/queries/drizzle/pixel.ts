@@ -1,6 +1,6 @@
 import { eq, and, or, like, count } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 
 const db = prisma.client;

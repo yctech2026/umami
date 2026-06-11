@@ -1,6 +1,6 @@
 import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
-import { createBoard, getBoard, updateBoard } from '@/queries/prisma';
+import { createBoard, getBoard, updateBoard } from '@/queries/drizzle';
 import { z } from 'zod';
 
 export async function GET(request: Request) {

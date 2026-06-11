@@ -3,7 +3,7 @@ import * as schema from '../../../drizzle/schema';
 import { getBoolEnv } from '@/lib/env';
 import { ROLES } from '@/lib/constants';
 import { getRandomChars } from '@/lib/generate';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import type { QueryFilters, Role } from '@/lib/types';
 
 export interface GetUserOptions {

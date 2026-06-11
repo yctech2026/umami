@@ -2,7 +2,7 @@ import { hasPermission } from '@/lib/auth';
 import { PERMISSIONS } from '@/lib/constants';
 import { getEntity } from '@/lib/entity';
 import type { Auth } from '@/lib/types';
-import { getTeamUser, getWebsite } from '@/queries/prisma';
+import { getTeamUser, getWebsite } from '@/queries/drizzle';
 
 export async function canViewWebsite({ user, shareToken }: Auth, websiteId: string) {
   if (user?.isAdmin) {

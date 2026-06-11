@@ -2,7 +2,7 @@ import { uuid } from '@/lib/crypto';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../../../../drizzle/schema';
 import { PRISMA, runQuery } from '@/lib/db';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 
 const db = prisma.client;
 

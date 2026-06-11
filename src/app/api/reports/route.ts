@@ -4,7 +4,7 @@ import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams, reportSchema, reportTypeParam } from '@/lib/schema';
 import { canUpdateWebsite, canViewWebsite } from '@/permissions';
-import { createReport, getReports } from '@/queries/prisma';
+import { createReport, getReports } from '@/queries/drizzle';
 
 export async function GET(request: Request) {
   const schema = z.object({

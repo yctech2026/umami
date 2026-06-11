@@ -2,7 +2,7 @@ import { getBoolEnv } from '@/lib/env';
 import { fetchAccount, fetchTeam } from '@/lib/load';
 import { parseRequest } from '@/lib/request';
 import { json } from '@/lib/response';
-import { getAllUserTeams } from '@/queries/prisma';
+import { getAllUserTeams } from '@/queries/drizzle';
 
 export async function POST(request: Request) {
   const { auth, error } = await parseRequest(request);
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const user = { ...auth.user };
-  const teams = await getAllUserTeams(user.id);
+  const teams = await getAllUserTeams(user.userId);
 
   if (getBoolEnv('CLOUD_MODE')) {
     const account = await fetchAccount(user.id);

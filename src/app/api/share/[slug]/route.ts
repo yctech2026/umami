@@ -4,10 +4,10 @@ import { secret } from '@/lib/crypto';
 import { createToken } from '@/lib/jwt';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../../../../../drizzle/schema';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import { json, notFound } from '@/lib/response';
 import type { BoardParameters, WhiteLabel } from '@/lib/types';
-import { getBoard, getLink, getPixel, getShareByCode, getWebsite } from '@/queries/prisma';
+import { getBoard, getLink, getPixel, getShareByCode, getWebsite } from '@/queries/drizzle';
 
 const db = prisma.client;
 
