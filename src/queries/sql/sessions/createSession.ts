@@ -1,9 +1,23 @@
-import type { Prisma } from '@/lib/drizzle-types';
 import prisma from '@/lib/prisma';
 
 const FUNCTION_NAME = 'createSession';
 
-export async function createSession(data: Prisma.SessionCreateInput) {
+interface SessionCreateInput {
+  id: string;
+  websiteId: string;
+  browser?: string;
+  os?: string;
+  device?: string;
+  screen?: string;
+  language?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  distinctId?: string;
+  createdAt?: string | Date;
+}
+
+export async function createSession(data: SessionCreateInput) {
   const { rawQuery } = prisma;
 
   await rawQuery(

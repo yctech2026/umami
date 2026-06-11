@@ -99,6 +99,7 @@ export async function POST(
       return badRequest({ message: 'That share ID is already taken.' });
     }
 
+    console.error('[websites] Error:', e);
     return serverError(e);
   }
 }

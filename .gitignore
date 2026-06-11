@@ -59,3 +59,4 @@ wrangler.jsonc
 # Drizzle
 drizzle/migrations/
 drizzle/meta/
+.wrangler/

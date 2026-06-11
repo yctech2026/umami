@@ -50,6 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pix
       return badRequest({ message: 'That slug is already taken.' });
     }
 
+    console.error('[pixels] Error:', e);
     return serverError(e);
   }
 }

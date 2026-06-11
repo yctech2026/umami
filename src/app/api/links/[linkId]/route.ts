@@ -51,6 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ lin
       return badRequest({ message: 'That slug is already taken.' });
     }
 
+    console.error('[links] Error:', e);
     return serverError(e);
   }
 }

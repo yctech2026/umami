@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       cache,
     });
   } catch (e) {
+    console.error('[batch] Error:', e);
     return serverError(e);
   }
 }

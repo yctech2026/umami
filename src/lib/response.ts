@@ -44,6 +44,10 @@ export function notFound(error?: Record<string, any>) {
 }
 
 export function serverError(error?: Record<string, any>) {
+  if (error) {
+    console.error('Server error:', error);
+  }
+
   return Response.json(
     {
       error: {

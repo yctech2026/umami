@@ -59,6 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ boa
 
     return Response.json(board);
   } catch (e: any) {
+    console.error('[boards] Error:', e);
     return serverError(e);
   }
 }
