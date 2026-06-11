@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return error();
   }
 
-  const userId = auth.user.id;
+  const userId = auth.user.userId;
   const { currentPassword, newPassword } = body;
 
   const user = await getUser(userId, { includePassword: true });

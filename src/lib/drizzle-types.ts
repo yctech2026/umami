@@ -21,7 +21,7 @@ export type Report = typeof schema.report.$inferSelect;
 
 export namespace Prisma {
   export type TeamFindManyArgs = { where?: any; include?: any; orderBy?: any; skip?: number; take?: number; [key: string]: any };
-  export type TeamFindUniqueArgs = { where: { id: string }; [key: string]: any };
+  export type TeamFindUniqueArgs = { where: { id?: string; accessCode?: string; [key: string]: any }; [key: string]: any };
   export type TeamWhereInput = Record<string, any>;
   export type TeamCreateInput = { id: string; name: string; accessCode?: string; logoUrl?: string; [key: string]: any };
   export type TeamUpdateInput = Record<string, any>;

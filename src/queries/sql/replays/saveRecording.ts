@@ -3,11 +3,12 @@ import { uuid } from '@/lib/crypto';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
 import prisma from '@/lib/prisma';
+import * as schema from '../../../../drizzle/schema';
 
 async function gzipAsync(data: Uint8Array): Promise<Uint8Array> {
   const cs = new CompressionStream('gzip');
   const writer = cs.writable.getWriter();
-  writer.write(data);
+  writer.write(data as BufferSource);
   writer.close();
   const reader = cs.readable.getReader();
   const chunks: Uint8Array[] = [];
@@ -56,18 +57,16 @@ async function relationalQuery({
 }: SaveRecordingArgs) {
   const compressed = await gzipAsync(new TextEncoder().encode(JSON.stringify(events)));
 
-  return prisma.client.sessionReplay.create({
-    data: {
-      id: uuid(),
-      websiteId,
-      sessionId,
-      visitId,
-      chunkIndex,
-      events: compressed as any,
-      eventCount,
-      startedAt,
-      endedAt,
-    },
+  return prisma.client.insert(schema.sessionReplay).values({
+    replayId: uuid(),
+    websiteId,
+    sessionId,
+    visitId,
+    chunkIndex,
+    events: compressed,
+    eventCount,
+    startedAt: startedAt.toISOString(),
+    endedAt: endedAt.toISOString(),
   });
 }
 

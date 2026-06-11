@@ -4,6 +4,8 @@ import { uuid } from '@/lib/crypto';
 import { flattenJSON, getStringValue } from '@/lib/data';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
+import { eq, and } from 'drizzle-orm';
+import * as schema from '../../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { DynamicData } from '@/lib/types';
 
@@ -34,38 +36,38 @@ export async function relationalQuery({
   const jsonKeys = flattenJSON(sessionData);
 
   const flattenedData = jsonKeys.map(a => ({
-    id: uuid(),
+    sessionDataId: uuid(),
     websiteId,
     sessionId,
     dataKey: a.key,
     stringValue: getStringValue(a.value, a.dataType),
-    numberValue: a.dataType === DATA_TYPE.number ? a.value : null,
-    dateValue: a.dataType === DATA_TYPE.date ? new Date(a.value) : null,
-    dataType: a.dataType,
+    numberValue: a.dataType === DATA_TYPE.number ? (a.value as number) : null,
+    dateValue: a.dataType === DATA_TYPE.date ? new Date(a.value).toISOString() : null,
+    dataType: a.dataType as number,
     distinctId,
-    createdAt,
+    createdAt: createdAt?.toISOString(),
   }));
 
-  for (const data of flattenedData) {
-    const { sessionId, dataKey, ...props } = data;
+  for (const item of flattenedData) {
+    const { sessionId, dataKey, ...props } = item;
 
     // Try to update existing record using compound where clause
     // This is safer than using id from a previous query due to race conditions
-    const updateResult = await client.sessionData.updateMany({
-      where: {
-        sessionId,
-        dataKey,
-      },
-      data: {
-        ...props,
-      },
-    });
+    const existing = await client
+      .select()
+      .from(schema.sessionData)
+      .where(and(eq(schema.sessionData.sessionId, sessionId), eq(schema.sessionData.dataKey, dataKey)))
+      .limit(1)
+      .all()
+      .then(r => r[0]);
 
-    // If no record was updated, create a new one
-    if (updateResult.count === 0) {
-      await client.sessionData.create({
-        data,
-      });
+    if (existing) {
+      await client
+        .update(schema.sessionData)
+        .set(props)
+        .where(and(eq(schema.sessionData.sessionId, sessionId), eq(schema.sessionData.dataKey, dataKey)));
+    } else {
+      await client.insert(schema.sessionData).values(item);
     }
   }
 }

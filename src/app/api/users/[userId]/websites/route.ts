@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { userId } = await params;
 
-  if (!auth.user.isAdmin && auth.user.id !== userId) {
+  if (!auth.user.isAdmin && auth.user.userId !== userId) {
     return unauthorized();
   }
 

@@ -1,6 +1,5 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { drizzle } from 'drizzle-orm/d1';
-import { drizzle as drizzleLibsql } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
 import { sql } from 'drizzle-orm';
 import * as schema from '../../drizzle/schema';
 import debug from 'debug';
@@ -8,6 +7,8 @@ import { getBoolEnv, getEnv } from '@/lib/env';
 import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS, SESSION_COLUMNS } from './constants';
 import { filtersObjectToArray } from './params';
 import type { Operator, QueryFilters, QueryOptions } from './types';
+import { getDrizzleClient, getRawDB } from './drizzle-client';
+import type { DrizzleClient } from './drizzle-client';
 
 const log = debug('umami:prisma');
 
@@ -246,105 +247,11 @@ function parseFilters(filters: Record<string, any>, options?: QueryOptions) {
 
 // ─── Drizzle & 本地 SQLite 基础设施 ─────────────────────────────────────────────
 
-let drizzleClient: ReturnType<typeof drizzle<typeof schema>> | null = null;
-let _libsqlClient: ReturnType<typeof createClient> | null = null;
-let _d1Wrapper: any = null;
-
-function getLibsqlClient() {
-  if (!_libsqlClient) {
-    _libsqlClient = createClient({
-      url: 'file:./drizzle/dev.db',
-    });
-  }
-  return _libsqlClient;
-}
-
 /**
- * 创建 D1 兼容包装器，让 rawQuery / batch 通过 libsql 工作
+ * 获取底层 D1 绑定（委托给 drizzle-client.ts 的 getRawDB）
  */
-function getD1Wrapper(): any {
-  if (_d1Wrapper) return _d1Wrapper;
-
-  const libsql = getLibsqlClient();
-
-  _d1Wrapper = {
-    prepare: (sql: string) => {
-      const stmt: any = {
-        _sql: sql,
-        _params: [] as any[],
-        bind: (...params: any[]) => {
-          stmt._params = params;
-          const bound: any = {
-            all: async () => {
-              const result = await libsql.execute({ sql, args: params });
-              return { results: result.rows };
-            },
-            _sql: sql,
-            _params: params,
-          };
-          return bound;
-        },
-      };
-      return stmt;
-    },
-    batch: async (statements: any[]) => {
-      const batchStmts = statements.map((s: any) => ({
-        sql: s._sql || s.sql,
-        args: s._params || s.params || [],
-      }));
-      return libsql.batch(batchStmts);
-    },
-  };
-
-  return _d1Wrapper;
-}
-
-/**
- * 获取 Drizzle ORM 实例（D1 → libsql 依次回退）
- */
-function getClient() {
-  // 1) Cloudflare Workers D1 binding（生产环境）
-  const db = (globalThis as any).__D1_DB__;
-  if (db) {
-    log('Drizzle initialized (D1)');
-    return drizzle(db, { schema });
-  }
-
-  // 2) 本地开发模式：libsql SQLite
-  try {
-    const libsql = getLibsqlClient();
-    log('Drizzle initialized (libsql SQLite)');
-    return drizzleLibsql(libsql, { schema }) as any;
-  } catch (e) {
-    throw new Error(`Failed to connect to local database: ${e}`);
-  }
-}
-
-/**
- * 获取缓存的 Drizzle 实例
- */
-function getDrizzleClient() {
-  if (!drizzleClient) {
-    drizzleClient = getClient();
-  }
-  return drizzleClient;
-}
-
-/**
- * 获取底层 D1 绑定（用于直接执行原始 SQL）
- * 本地开发时通过 D1 兼容包装器委托给 libsql
- */
-function getD1Binding(): any {
-  // 1) Cloudflare Workers D1 binding（生产环境）
-  const db = (globalThis as any).__D1_DB__;
-  if (db) return db;
-
-  // 2) 本地开发模式：libsql D1 兼容包装器
-  try {
-    return getD1Wrapper();
-  } catch (e) {
-    throw new Error(`Database not available: ${e}`);
-  }
+async function getD1Binding(): Promise<any> {
+  return getRawDB();
 }
 
 // ─── 核心执行函数 ──────────────────────────────────────────────────────────────
@@ -369,7 +276,7 @@ async function rawQuery(sql: string, data: Record<string, any>, name?: string): 
     return '?';
   });
 
-  const d1 = getD1Binding();
+  const d1 = await getD1Binding();
   const { results } = await d1.prepare(query).bind(...params).all();
   return results;
 }
@@ -469,7 +376,7 @@ function getSearchParameters(query: string, filters: Record<string, any>[]) {
 async function transaction(input: any, options?: any) {
   if (typeof input === 'function') {
     // Callback 模式：使用 Drizzle 的事务 API
-    const client = getDrizzleClient();
+    const client = await getDrizzleClient();
     return client.transaction(async (tx) => {
       return input(tx);
     });
@@ -479,7 +386,7 @@ async function transaction(input: any, options?: any) {
   if (Array.isArray(input)) {
     if (input.length === 0) return [];
 
-    const d1 = getD1Binding();
+    const d1 = await getD1Binding();
 
     // 将每个操作转换为 prepared statement SQL
     const preparedStatements = input.map((op: any) => {
@@ -504,12 +411,87 @@ function getSchema() {
   return schema;
 }
 
-// ─── 客户端单例 ───────────────────────────────────────────────────────────────
+// ─── 客户端单例（惰性初始化） ──────────────────────────────────────────────
 
-const client = getDrizzleClient();
+let _cachedClient: DrizzleClient | null = null;
+let _clientPromise: Promise<DrizzleClient> | null = null;
+
+/**
+ * 同步尝试初始化 Drizzle 客户端（不依赖 async 路径）
+ * 在 Cloudflare Context 或 __D1_DB__ 已就绪时可用
+ */
+function tryInitDrizzleClientSync(): DrizzleClient | null {
+  try {
+    const ctx = getCloudflareContext({ async: false });
+    if ((ctx.env as any)?.DB) {
+      _cachedClient = drizzle((ctx.env as any).DB, { schema });
+      _clientPromise = Promise.resolve(_cachedClient);
+      log('Drizzle client initialized via getCloudflareContext (lazy sync)');
+      return _cachedClient;
+    }
+  } catch {
+    // context not available yet
+  }
+
+  const d1 = (globalThis as any).__D1_DB__;
+  if (d1) {
+    _cachedClient = drizzle(d1, { schema });
+    _clientPromise = Promise.resolve(_cachedClient);
+    log('Drizzle client initialized via __D1_DB__ (lazy sync)');
+    return _cachedClient;
+  }
+
+  return null;
+}
+
+/**
+ * 异步获取 Drizzle 客户端（首次调用时惰性初始化）
+ * 优先使用 getCloudflareContext，回退到 getDrizzleClient (drizzle-client.ts)
+ */
+export async function getClient(): Promise<DrizzleClient> {
+  if (_cachedClient) return _cachedClient;
+
+  // 先尝试同步初始化
+  const syncClient = tryInitDrizzleClientSync();
+  if (syncClient) return syncClient;
+
+  // 异步路径：使用 drizzle-client.ts 的完整回退逻辑
+  if (!_clientPromise) {
+    _clientPromise = getDrizzleClient().then((c) => {
+      _cachedClient = c;
+      return c;
+    });
+  }
+  return _clientPromise;
+}
+
+/**
+ * 惰性 Proxy 客户端（向后兼容）
+ * 首次访问属性时自动尝试同步初始化，仅在 Cloudflare Context 已就绪时有效
+ * 若同步初始化失败，可改用 await getClient() 异步获取
+ */
+const client = new Proxy({} as DrizzleClient, {
+  get(_, prop) {
+    if (!_cachedClient) {
+      const syncClient = tryInitDrizzleClientSync();
+      if (!syncClient) {
+        throw new Error(
+          '[prisma] Drizzle client not yet initialized and no sync backend available. ' +
+            'Use await getClient() for async initialization.',
+        );
+      }
+    }
+    const value = Reflect.get(_cachedClient!, prop, _cachedClient!);
+    if (typeof value === 'function') {
+      return value.bind(_cachedClient);
+    }
+    return value;
+  },
+});
 
 export default {
   client,
+  getClient,
   transaction,
   getAddIntervalQuery,
   getCastColumnQuery,

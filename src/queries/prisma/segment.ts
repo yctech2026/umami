@@ -2,15 +2,17 @@ import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from '
 import * as schema from '../../../drizzle/schema';
 import type { QueryFilters } from '@/lib/types';
 import { getDrizzleClient } from '@/lib/drizzle-client';
-
 const DEFAULT_PAGE_SIZE = 50;
 
-function getDb() {
-  return getDrizzleClient();
+let _db: any;
+
+async function getDb(): Promise<any> {
+  if (!_db) _db = await getDrizzleClient();
+  return _db;
 }
 
 export async function getSegment(segmentId: string) {
-  return getDb()
+  return (await getDb())
     .select()
     .from(schema.segment)
     .where(eq(schema.segment.segmentId, segmentId))
@@ -41,7 +43,7 @@ export async function getSegments(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = getDb().select().from(schema.segment);
+  let query = (await getDb()).select().from(schema.segment);
   if (whereClause) query = query.where(whereClause);
 
   if (orderBy) {
@@ -56,7 +58,7 @@ export async function getSegments(
 
   const data = await query;
 
-  let countQuery = getDb().select({ count: count() }).from(schema.segment);
+  let countQuery = (await getDb()).select({ count: count() }).from(schema.segment);
   if (whereClause) countQuery = countQuery.where(whereClause);
   const countResult = await countQuery.get();
 
@@ -71,7 +73,7 @@ export async function getSegments(
 }
 
 export async function getWebsiteSegment(websiteId: string, segmentId: string) {
-  return getDb()
+  return (await getDb())
     .select()
     .from(schema.segment)
     .where(
@@ -100,7 +102,7 @@ export async function getWebsiteSegments(
 }
 
 export async function createSegment(data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .insert(schema.segment)
     .values(data)
     .returning()
@@ -109,7 +111,7 @@ export async function createSegment(data: Record<string, any>) {
 }
 
 export async function updateSegment(segmentId: string, data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .update(schema.segment)
     .set(data)
     .where(eq(schema.segment.segmentId, segmentId))
@@ -119,7 +121,7 @@ export async function updateSegment(segmentId: string, data: Record<string, any>
 }
 
 export async function deleteSegment(segmentId: string) {
-  return getDb()
+  return (await getDb())
     .delete(schema.segment)
     .where(eq(schema.segment.segmentId, segmentId))
     .returning()

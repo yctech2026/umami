@@ -2,15 +2,17 @@ import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from '
 import * as schema from '../../../drizzle/schema';
 import type { QueryFilters } from '@/lib/types';
 import { getDrizzleClient } from '@/lib/drizzle-client';
-
 const DEFAULT_PAGE_SIZE = 50;
 
-function getDb() {
-  return getDrizzleClient();
+let _db: any;
+
+async function getDb(): Promise<any> {
+  if (!_db) _db = await getDrizzleClient();
+  return _db;
 }
 
 export async function getReport(reportId: string) {
-  return getDb()
+  return (await getDb())
     .select()
     .from(schema.report)
     .where(eq(schema.report.reportId, reportId))
@@ -54,7 +56,7 @@ export async function getReports(
   let query;
 
   if (includeWebsite) {
-    query = getDb()
+    query = (await getDb())
       .select({
         reportId: schema.report.reportId,
         userId: schema.report.userId,
@@ -76,7 +78,7 @@ export async function getReports(
         eq(schema.report.websiteId, schema.website.websiteId),
       );
   } else {
-    query = getDb().select().from(schema.report);
+    query = (await getDb()).select().from(schema.report);
   }
 
   if (whereClause) query = query.where(whereClause);
@@ -93,7 +95,7 @@ export async function getReports(
 
   const data = await query;
 
-  let countQuery = getDb().select({ count: count() }).from(schema.report);
+  let countQuery = (await getDb()).select({ count: count() }).from(schema.report);
   if (whereClause) countQuery = countQuery.where(whereClause);
   const countResult = await countQuery.get();
 
@@ -141,7 +143,7 @@ export async function getWebsiteReports(
 }
 
 export async function createReport(data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .insert(schema.report)
     .values(data)
     .returning()
@@ -150,7 +152,7 @@ export async function createReport(data: Record<string, any>) {
 }
 
 export async function updateReport(reportId: string, data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .update(schema.report)
     .set(data)
     .where(eq(schema.report.reportId, reportId))
@@ -160,7 +162,7 @@ export async function updateReport(reportId: string, data: Record<string, any>) 
 }
 
 export async function deleteReport(reportId: string) {
-  return getDb()
+  return (await getDb())
     .delete(schema.report)
     .where(eq(schema.report.reportId, reportId))
     .returning()

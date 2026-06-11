@@ -5,6 +5,7 @@ import { flattenJSON, getStringValue } from '@/lib/data';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
 import prisma from '@/lib/prisma';
+import * as schema from '../../../../drizzle/schema';
 import type { DynamicData } from '@/lib/types';
 
 export interface SaveEventDataArgs {
@@ -31,20 +32,18 @@ async function relationalQuery(data: SaveEventDataArgs) {
 
   // id, websiteEventId, eventStringValue
   const flattenedData = jsonKeys.map(a => ({
-    id: uuid(),
+    eventDataId: uuid(),
     websiteEventId: eventId,
     websiteId,
     dataKey: a.key,
     stringValue: getStringValue(a.value, a.dataType),
-    numberValue: a.dataType === DATA_TYPE.number ? a.value : null,
-    dateValue: a.dataType === DATA_TYPE.date ? new Date(a.value) : null,
-    dataType: a.dataType,
-    createdAt,
+    numberValue: a.dataType === DATA_TYPE.number ? (a.value as number) : null,
+    dateValue: a.dataType === DATA_TYPE.date ? new Date(a.value).toISOString() : null,
+    dataType: a.dataType as number,
+    createdAt: createdAt?.toISOString(),
   }));
 
-  await prisma.client.eventData.createMany({
-    data: flattenedData,
-  });
+  await prisma.client.insert(schema.eventData).values(flattenedData);
 }
 
 async function clickhouseQuery(data: SaveEventDataArgs) {

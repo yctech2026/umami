@@ -7,7 +7,7 @@ export async function canViewReport(auth: Auth, report: Report) {
     return true;
   }
 
-  if (auth.user?.id === report.userId) {
+  if (auth.user?.userId === report.userId) {
     return true;
   }
 
@@ -23,7 +23,7 @@ export async function canUpdateReport(auth: Auth, report: Report) {
     return true;
   }
 
-  if (auth.user.id === report.userId) {
+  if (auth.user.userId === report.userId) {
     return true;
   }
 
@@ -39,7 +39,7 @@ export async function canDeleteReport(auth: Auth, report: Report) {
     return true;
   }
 
-  if (auth.user.id === report.userId) {
+  if (auth.user.userId === report.userId) {
     return true;
   }
 

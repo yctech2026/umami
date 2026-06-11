@@ -3,11 +3,13 @@ import * as schema from '../../../drizzle/schema';
 import { BOARD_TYPES } from '@/lib/boards';
 import type { QueryFilters } from '@/lib/types';
 import { getDrizzleClient } from '@/lib/drizzle-client';
-
 const DEFAULT_PAGE_SIZE = 50;
 
-function getDb() {
-  return getDrizzleClient();
+let _db: any;
+
+async function getDb(): Promise<any> {
+  if (!_db) _db = await getDrizzleClient();
+  return _db;
 }
 
 export async function findBoard(criteria: Record<string, any>) {
@@ -19,14 +21,14 @@ export async function findBoard(criteria: Record<string, any>) {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = getDb().select().from(schema.board);
+  let query = (await getDb()).select().from(schema.board);
   if (whereClause) query = query.where(whereClause);
 
   return query.get();
 }
 
 export async function getBoard(boardId: string) {
-  return getDb()
+  return (await getDb())
     .select()
     .from(schema.board)
     .where(eq(schema.board.boardId, boardId))
@@ -63,7 +65,7 @@ export async function getBoards(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = getDb().select().from(schema.board);
+  let query = (await getDb()).select().from(schema.board);
   if (whereClause) query = query.where(whereClause);
 
   if (orderBy) {
@@ -78,7 +80,7 @@ export async function getBoards(
 
   const data = await query;
 
-  let countQuery = getDb().select({ count: count() }).from(schema.board);
+  let countQuery = (await getDb()).select({ count: count() }).from(schema.board);
   if (whereClause) countQuery = countQuery.where(whereClause);
   const countResult = await countQuery.get();
 
@@ -121,7 +123,7 @@ export async function getTeamBoards(teamId: string, filters?: QueryFilters) {
 }
 
 export async function createBoard(data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .insert(schema.board)
     .values(data)
     .returning()
@@ -130,7 +132,7 @@ export async function createBoard(data: Record<string, any>) {
 }
 
 export async function updateBoard(boardId: string, data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .update(schema.board)
     .set(data)
     .where(eq(schema.board.boardId, boardId))
@@ -140,7 +142,7 @@ export async function updateBoard(boardId: string, data: Record<string, any>) {
 }
 
 export async function deleteBoard(boardId: string) {
-  return getDb()
+  return (await getDb())
     .delete(schema.board)
     .where(eq(schema.board.boardId, boardId))
     .returning()

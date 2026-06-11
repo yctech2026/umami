@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
   const result = await createReport({
     id: uuid(),
-    userId: auth.user.id,
+    userId: auth.user.userId,
     websiteId,
     type,
     name,

@@ -18,7 +18,7 @@
     "start-docker": "npm-run-all check-db update-tracker start-server",
     "start-env": "node scripts/start-env.js",
     "start-server": "node server.js",
-    "build-app": "next build --webpack",
+    "build-app": "next build",
     "build-icons": "svgr ./src/assets --out-dir src/components/svg --typescript",
     "build-components": "node scripts/bump-components.js && tsup",
     "build-tracker": "rollup -c rollup.tracker.config.js",

@@ -1,5 +1,5 @@
 import { uuid } from '@/lib/crypto';
-import { eq, and, like, desc, sql } from 'drizzle-orm';
+import { eq, and, like, desc, count } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
 import prisma from '@/lib/prisma';
 import type { QueryFilters } from '@/lib/types';
@@ -19,14 +19,7 @@ export interface CreateReplayChunkArgs {
 
 export async function getReplayChunks(websiteId: string, visitId: string) {
   return db
-    .select({
-      events: schema.sessionReplay.events,
-      sessionId: schema.sessionReplay.sessionId,
-      chunkIndex: schema.sessionReplay.chunkIndex,
-      eventCount: schema.sessionReplay.eventCount,
-      startedAt: schema.sessionReplay.startedAt,
-      endedAt: schema.sessionReplay.endedAt,
-    })
+    .select()
     .from(schema.sessionReplay)
     .where(
       and(
@@ -51,16 +44,16 @@ export async function createReplayChunk({
   return db
     .insert(schema.sessionReplay)
     .values({
-      id: uuid(),
+      replayId: uuid(),
       websiteId,
       sessionId,
       visitId,
       chunkIndex,
-      events: new Uint8Array(events) as any,
+      events: new Uint8Array(events),
       eventCount,
       startedAt,
       endedAt,
-    })
+    } as any)
     .returning()
     .all()
     .then(r => r[0]);
@@ -75,7 +68,7 @@ export async function deleteReplaysByWebsite(websiteId: string) {
 
 export async function getReplaySaved(websiteId: string, visitId: string): Promise<boolean> {
   const record = await db
-    .select({ id: schema.sessionReplaySaved.id })
+    .select()
     .from(schema.sessionReplaySaved)
     .where(
       and(
@@ -90,7 +83,7 @@ export async function getReplaySaved(websiteId: string, visitId: string): Promis
 export async function createReplaySaved(websiteId: string, visitId: string, name: string) {
   return db
     .insert(schema.sessionReplaySaved)
-    .values({ id: uuid(), websiteId, visitId, name })
+    .values({ savedReplayId: uuid(), websiteId, visitId, name } as any)
     .returning()
     .all()
     .then(r => r[0]);
@@ -141,15 +134,15 @@ export async function getSavedReplays(websiteId: string, filters: QueryFilters) 
     .offset(offset)
     .all();
 
-  const countResult = await db
-    .select({ num: sql<number>`count(*)` })
+  const countResult = await (db as any)
+    .select({ count: count() })
     .from(schema.sessionReplaySaved)
     .where(and(...conditions))
-    .get();
+    .get() as { count: number } | undefined;
 
   return {
     data,
-    count: countResult?.num ?? 0,
+    count: Number(countResult?.count ?? 0),
     page: +page,
     pageSize: size,
     orderBy: 'createdAt',

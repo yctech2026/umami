@@ -21,26 +21,7 @@ export async function GET(request: Request) {
     return unauthorized();
   }
 
-  const users = await getUsers(
-    {
-      include: {
-        _count: {
-          select: {
-            websites: {
-              where: { deletedAt: null },
-            },
-          },
-        },
-      },
-      omit: {
-        password: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    },
-    query,
-  );
+  const users = await getUsers({}, query);
 
   return json(users);
 }

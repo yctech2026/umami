@@ -56,12 +56,12 @@ export async function getSharesByEntityId(entityId: string, filters?: QueryFilte
     .limit(size)
     .offset(offset);
 
-  const [{ total }] = await db
-    .select({ total: count() })
+  const countRows = await (db as any)
+    .select({ count: count() })
     .from(schema.share)
-    .where(where);
+    .where(where) as { count: number }[];
 
-  return { data, count: Number(total), page: +page, pageSize: size };
+  return { data, count: Number(countRows[0]?.count ?? 0), page: +page, pageSize: size };
 }
 
 export async function createShare(data: any) {

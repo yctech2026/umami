@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const filters = await getQueryFilters(query);
 
-  const links = await getUserLinks(auth.user.id, filters);
+  const links = await getUserLinks(auth.user.userId, filters);
 
   return json(links);
 }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   };
 
   if (!teamId) {
-    data.userId = auth.user.id;
+    data.userId = auth.user.userId;
   }
 
   const result = await createLink(data);

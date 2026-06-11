@@ -13,7 +13,7 @@ export function WebsiteEditForm({ websiteId, onSave }: { websiteId: string; onSa
       onSuccess: async () => {
         toast(t(messages.saved));
         touch('websites');
-        touch(`website:${website.id}`);
+        touch(`website:${website.websiteId}`);
         onSave?.();
       },
     });
@@ -22,7 +22,7 @@ export function WebsiteEditForm({ websiteId, onSave }: { websiteId: string; onSa
   return (
     <Form onSubmit={handleSubmit} error={getErrorMessage(error)} values={website}>
       <FormField name="id" label={t(labels.websiteId)}>
-        <TextField data-test="text-field-websiteId" value={website?.id} isReadOnly allowCopy />
+        <TextField data-test="text-field-websiteId" value={website?.websiteId} isReadOnly allowCopy />
       </FormField>
       <FormField
         label={t(labels.name)}

@@ -28,13 +28,13 @@ export function WebsiteHeader({
     <PageHeader
       title={website.name}
       icon={<Favicon domain={website.domain} />}
-      titleHref={allowLink ? renderUrl(`/websites/${website.id}`, false) : undefined}
+      titleHref={allowLink ? renderUrl(`/websites/${website.websiteId}`, false) : undefined}
     >
       <Row alignItems="center" gap="6" wrap="wrap">
-        <ActiveUsers websiteId={website.id} />
+        <ActiveUsers websiteId={website.websiteId} />
 
         {showActions && (
-          <LinkButton href={renderUrl(`/websites/${website.id}/settings`, false)}>
+          <LinkButton href={renderUrl(`/websites/${website.websiteId}/settings`, false)}>
             <IconLabel icon={<Edit />}>{t(labels.edit)}</IconLabel>
           </LinkButton>
         )}

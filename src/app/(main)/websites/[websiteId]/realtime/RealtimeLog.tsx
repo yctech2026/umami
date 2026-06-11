@@ -200,7 +200,7 @@ export function RealtimeLog({ data }: { data: any }) {
           </FixedSizeList>
         )}
       </Column>
-      <SessionModal websiteId={website.id} />
+      <SessionModal websiteId={website.websiteId} />
     </Column>
   );
 }

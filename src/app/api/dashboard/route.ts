@@ -10,9 +10,9 @@ export async function GET(request: Request) {
     return error();
   }
 
-  const board = await getBoard(auth.user.id);
+  const board = await getBoard(auth.user.userId);
 
-  if (board && board.userId !== auth.user.id) {
+  if (board && board.userId !== auth.user.userId) {
     return unauthorized();
   }
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return error();
   }
 
-  const userId = auth.user.id;
+  const userId = auth.user.userId;
   const existing = await getBoard(userId);
 
   if (existing && existing.userId !== userId) {

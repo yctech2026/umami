@@ -34,7 +34,7 @@ export function RevenueChart({ data, unit, minDate, maxDate, currency }: Revenue
         const color = colord(CHART_COLORS[index % CHART_COLORS.length]);
         return {
           label: key,
-          data: generateTimeSeries(map[key], minDate, maxDate, unit, dateLocale),
+          data: generateTimeSeries(map[key], minDate, maxDate, unit, locale),
           backgroundColor: color.alpha(0.6).toRgbString(),
           borderColor: color.alpha(0.7).toRgbString(),
           borderWidth: 1,

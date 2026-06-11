@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     return error();
   }
 
-  const token = await saveAuth({ userId: auth.user.id }, 86400);
+  const token = await saveAuth({ userId: auth.user.userId }, 86400);
 
   return json({ user: auth.user, token });
 }

@@ -5,14 +5,17 @@ import { useNavigation } from '@/components/hooks';
 
 export interface ReplayModalProps extends ModalProps {
   websiteId: string;
+  sessionId?: string;
 }
 
-export function ReplayModal({ websiteId, ...props }: ReplayModalProps) {
+export function ReplayModal({ websiteId, sessionId, ...props }: ReplayModalProps) {
   const {
     router,
     query: { replay },
     updateParams,
   } = useNavigation();
+
+  const replayId = sessionId ?? replay;
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -24,7 +27,7 @@ export function ReplayModal({ websiteId, ...props }: ReplayModalProps) {
     <Modal
       placement="bottom"
       offset="80px"
-      isOpen={!!replay}
+      isOpen={!!replayId}
       onOpenChange={handleOpenChange}
       isDismissable
       {...props}
@@ -33,7 +36,7 @@ export function ReplayModal({ websiteId, ...props }: ReplayModalProps) {
         <Dialog variant="sheet">
           {({ close }) => (
             <Column padding="6">
-              <ReplayPlayback websiteId={websiteId} replayId={replay} onClose={close} />
+              <ReplayPlayback websiteId={websiteId} replayId={replayId} onClose={close} />
             </Column>
           )}
         </Dialog>

@@ -13,7 +13,7 @@ export async function canViewUser({ user }: Auth, viewedUserId: string) {
     return true;
   }
 
-  return user.id === viewedUserId;
+  return user.userId === viewedUserId;
 }
 
 export async function canViewUsers({ user }: Auth) {
@@ -29,7 +29,7 @@ export async function canUpdateUser({ user }: Auth, viewedUserId: string) {
     return true;
   }
 
-  return user.id === viewedUserId;
+  return user.userId === viewedUserId;
 }
 
 export async function canDeleteUser({ user }: Auth) {

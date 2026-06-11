@@ -96,7 +96,7 @@ export async function DELETE(
     return unauthorized();
   }
 
-  if (userId === auth.user.id) {
+  if (userId === auth.user.userId) {
     return badRequest({ message: 'You cannot delete yourself.' });
   }
 

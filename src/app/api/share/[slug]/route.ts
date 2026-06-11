@@ -18,7 +18,7 @@ async function getAccountId(entity: { userId?: string; teamId?: string }): Promi
 
   if (entity.teamId) {
     const teamOwner = await db
-      .select({ userId: schema.teamUser.userId })
+      .select()
       .from(schema.teamUser)
       .where(
         and(
@@ -48,7 +48,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   }
 
   const data: Record<string, any> = {
-    shareId: share.id,
+    shareId: share.shareId,
     shareType: share.shareType,
     parameters: share.parameters,
   };
@@ -58,7 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   if (share.shareType === ENTITY_TYPE.board) {
     const board = await getBoard(share.entityId);
     if (!board) return notFound();
-    entity = board;
+    entity = board as any;
     data.boardId = share.entityId;
     const boardEntityIds = getBoardEntityIds({
       type: board.type,
@@ -68,16 +68,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     data.pixelIds = boardEntityIds.pixelIds;
     data.linkIds = boardEntityIds.linkIds;
   } else if (share.shareType === ENTITY_TYPE.website) {
-    entity = await getWebsite(share.entityId);
+    entity = (await getWebsite(share.entityId)) as any;
     if (!entity) return notFound();
     data.websiteId = share.entityId;
   } else if (share.shareType === ENTITY_TYPE.pixel) {
-    entity = await getPixel(share.entityId);
+    entity = (await getPixel(share.entityId)) as any;
     if (!entity) return notFound();
     data.websiteId = share.entityId;
     data.pixelId = share.entityId;
   } else if (share.shareType === ENTITY_TYPE.link) {
-    entity = await getLink(share.entityId);
+    entity = (await getLink(share.entityId)) as any;
     if (!entity) return notFound();
     data.websiteId = share.entityId;
     data.linkId = share.entityId;

@@ -117,15 +117,11 @@ export async function getWebsites(
     .limit(size)
     .offset(offset);
 
-  const countResult = await db
-    .select({ count: count() })
-    .from(schema.website)
-    .where(and(...conditions))
-    .get();
+  const count = await db.$count(schema.website, and(...conditions));
 
   const result = {
     data,
-    count: Number(countResult?.count || 0),
+    count,
     page: +page,
     pageSize: size,
     orderBy,
@@ -214,15 +210,11 @@ export async function getAllUserWebsitesIncludingTeamOwner(
     .limit(size)
     .offset(offset);
 
-  const countResult = await db
-    .select({ count: count() })
-    .from(schema.website)
-    .where(and(...conditions))
-    .get();
+  const count = await db.$count(schema.website, and(...conditions));
 
   const result = {
     data,
-    count: Number(countResult?.count || 0),
+    count,
     page: +page,
     pageSize: size,
     orderBy,
@@ -256,13 +248,7 @@ export async function getUserWebsites(userId: string, filters?: QueryFilters) {
   const orderColumn = orderBy === 'name' ? schema.website.name : schema.website.createdAt;
 
   const rows = await db
-    .select({
-      website: schema.website,
-      user: {
-        id: schema.user.userId,
-        username: schema.user.username,
-      },
-    })
+    .select()
     .from(schema.website)
     .leftJoin(schema.user, eq(schema.website.userId, schema.user.userId))
     .where(and(...conditions))
@@ -276,15 +262,11 @@ export async function getUserWebsites(userId: string, filters?: QueryFilters) {
     user: row.user,
   }));
 
-  const countResult = await db
-    .select({ count: count() })
-    .from(schema.website)
-    .where(and(...conditions))
-    .get();
+  const count = await db.$count(schema.website, and(...conditions));
 
   const result = {
     data,
-    count: Number(countResult?.count || 0),
+    count,
     page: +page,
     pageSize: size,
     orderBy,
@@ -318,13 +300,7 @@ export async function getTeamWebsites(teamId: string, filters?: QueryFilters) {
   const orderColumn = orderBy === 'name' ? schema.website.name : schema.website.createdAt;
 
   const rows = await db
-    .select({
-      website: schema.website,
-      createUser: {
-        id: schema.user.userId,
-        username: schema.user.username,
-      },
-    })
+    .select()
     .from(schema.website)
     .leftJoin(schema.user, eq(schema.website.createdBy, schema.user.userId))
     .where(and(...conditions))
@@ -334,18 +310,14 @@ export async function getTeamWebsites(teamId: string, filters?: QueryFilters) {
 
   const data = rows.map(row => ({
     ...row.website,
-    createUser: row.createUser,
+    createUser: row.user,
   }));
 
-  const countResult = await db
-    .select({ count: count() })
-    .from(schema.website)
-    .where(and(...conditions))
-    .get();
+  const count = await db.$count(schema.website, and(...conditions));
 
   const result = {
     data,
-    count: Number(countResult?.count || 0),
+    count,
     page: +page,
     pageSize: size,
     orderBy,
@@ -490,27 +462,20 @@ export async function deleteWebsite(websiteId: string) {
 export async function getWebsiteCount(userId: string) {
   const db = prisma.client;
 
-  const result = await db
-    .select({ count: count() })
-    .from(schema.website)
-    .where(
-      and(
-        eq(schema.website.userId, userId),
-        isNull(schema.website.deletedAt),
-      ),
-    )
-    .get();
-
-  return Number(result?.count || 0);
+  return db.$count(
+    schema.website,
+    and(
+      eq(schema.website.userId, userId),
+      isNull(schema.website.deletedAt),
+    ),
+  );
 }
 
-export async function attachShareIdToWebsite(website: Record<string, any>) {
+export async function attachShareIdToWebsite(website: Record<string, any>): Promise<Record<string, any> & { id: any; shareId: string | null; userId: string | null; teamId: string | null }> {
   const db = prisma.client;
 
   const share = await db
-    .select({
-      slug: schema.share.slug,
-    })
+    .select()
     .from(schema.share)
     .where(eq(schema.share.entityId, website.id ?? website.websiteId))
     .orderBy(desc(schema.share.createdAt))
@@ -521,6 +486,8 @@ export async function attachShareIdToWebsite(website: Record<string, any>) {
     ...website,
     id: website.id ?? website.websiteId,
     shareId: share?.slug ?? null,
+    userId: website.userId ?? null,
+    teamId: website.teamId ?? null,
   };
 }
 

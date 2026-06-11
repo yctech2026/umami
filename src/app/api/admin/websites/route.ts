@@ -22,37 +22,7 @@ export async function GET(request: Request) {
     return unauthorized();
   }
 
-  const websites = await getWebsites(
-    {
-      include: {
-        user: {
-          where: {
-            deletedAt: null,
-          },
-          select: {
-            username: true,
-            id: true,
-          },
-        },
-        team: {
-          where: {
-            deletedAt: null,
-          },
-          include: {
-            members: {
-              where: {
-                role: ROLES.teamOwner,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    },
-    query,
-  );
+  const websites = await getWebsites({}, query);
 
   return json(websites);
 }

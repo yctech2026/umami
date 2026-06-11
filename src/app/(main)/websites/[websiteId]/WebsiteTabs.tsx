@@ -49,7 +49,7 @@ export function WebsiteTabs() {
         <TabList>
           {links.map(({ id, label, icon, path }) => {
             return (
-              <Tab key={id} id={id} href={renderUrl(`/websites/${website.id}${path}`)}>
+              <Tab key={id} id={id} href={renderUrl(`/websites/${website.websiteId}${path}`)}>
                 <Row alignItems="center" gap>
                   <Icon>{icon}</Icon>
                   <Text>{label}</Text>

@@ -20,25 +20,26 @@ export function CopyButton({
     };
   }, []);
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     if (!navigator?.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
 
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-    }
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
 
-    timeoutRef.current = window.setTimeout(() => {
-      setCopied(false);
-    }, 1500);
+      timeoutRef.current = window.setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    });
   };
 
   return (
-    <Button variant="quiet" onPress={handleCopy} title={label} aria-label={label}>
+    <Button variant="quiet" onPress={handleCopy} aria-label={label}>
       <Icon size="sm">{copied ? <Check /> : <Copy />}</Icon>
     </Button>
   );

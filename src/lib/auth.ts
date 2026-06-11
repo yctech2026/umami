@@ -27,12 +27,12 @@ export async function checkAuth(request: Request) {
 
   log({ token, payload, shareToken, user });
 
-  if (!user?.id && !shareToken) {
+  if (!user?.userId && !shareToken) {
     log('User not authorized');
     return null;
   }
 
-  if (!user?.id && shareToken) {
+  if (!user?.userId && shareToken) {
     const shareContext = request.headers.get(SHARE_CONTEXT_HEADER);
     if (!shareContext) {
       log('Share token used outside share context');

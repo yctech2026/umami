@@ -36,22 +36,18 @@ async function findUser(criteria: { where?: Record<string, any> }, options: GetU
     conditions.push(isNull(schema.user.deletedAt));
   }
 
-  const selectFields: Record<string, any> = {
-    id: schema.user.userId,
-    username: schema.user.username,
-    role: schema.user.role,
-    createdAt: schema.user.createdAt,
-  };
-
-  if (includePassword) {
-    selectFields.password = schema.user.password;
-  }
-
-  return db
-    .select(selectFields)
+  const result = await db
+    .select()
     .from(schema.user)
     .where(and(...conditions))
     .get();
+
+  if (!result) return null;
+  if (!includePassword) {
+    const { password, ...rest } = result;
+    return rest as any;
+  }
+  return result;
 }
 
 export async function getUser(userId: string, options: GetUserOptions = {}) {
@@ -104,30 +100,18 @@ export async function getUsers(criteria: { where?: Record<string, any> } = {}, f
   const orderColumn = orderBy === 'username' ? schema.user.username : schema.user.createdAt;
 
   const data = await db
-    .select({
-      id: schema.user.userId,
-      username: schema.user.username,
-      role: schema.user.role,
-      logoUrl: schema.user.logoUrl,
-      displayName: schema.user.displayName,
-      createdAt: schema.user.createdAt,
-      updatedAt: schema.user.updatedAt,
-    })
+    .select()
     .from(schema.user)
     .where(and(...conditions))
     .orderBy(direction(orderColumn))
     .limit(size)
     .offset(offset);
 
-  const countResult = await db
-    .select({ count: count() })
-    .from(schema.user)
-    .where(and(...conditions))
-    .get();
+  const count = await db.$count(schema.user, and(...conditions));
 
   return {
     data,
-    count: Number(countResult?.count || 0),
+    count,
     page: +page,
     pageSize: size,
     orderBy,
@@ -193,7 +177,7 @@ export async function deleteUser(userId: string) {
   const websiteIds = websites.length > 0 ? websites.map(a => a.websiteId) : [];
 
   const teams = await db
-    .select({ teamId: schema.team.teamId })
+    .select()
     .from(schema.team)
     .innerJoin(schema.teamUser, eq(schema.team.teamId, schema.teamUser.teamId))
     .where(
@@ -203,7 +187,7 @@ export async function deleteUser(userId: string) {
       ),
     );
 
-  const teamIds = teams.map(a => a.teamId);
+  const teamIds = teams.map(a => a.team.teamId);
 
   if (cloudMode) {
     return prisma.transaction([

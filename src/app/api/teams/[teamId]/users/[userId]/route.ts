@@ -52,7 +52,7 @@ export async function POST(
     return badRequest({ message: 'The User does not exists on this team.' });
   }
 
-  const user = await updateTeamUser(teamUser.id, body);
+  const user = await updateTeamUser(teamUser.teamUserId, body);
 
   return json(user);
 }

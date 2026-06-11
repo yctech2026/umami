@@ -28,14 +28,14 @@ async function relationalQuery(data: SaveRevenueArgs) {
   return db
     .insert(schema.revenue)
     .values({
-      id: uuid(),
+      revenueId: uuid(),
       websiteId,
       sessionId,
       eventId,
       eventName,
       currency,
       revenue,
-      createdAt,
+      createdAt: createdAt.toISOString(),
     })
     .returning()
     .all()

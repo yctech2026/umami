@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     return error();
   }
 
-  const userId = auth.user.id;
+  const userId = auth.user.userId;
 
   const filters = await getQueryFilters(query);
 
@@ -54,10 +54,10 @@ export async function POST(request: Request) {
   const { id, name, domain, shareId, teamId } = body;
 
   if (getBoolEnv('CLOUD_MODE') && !teamId) {
-    const account = await fetchAccount(auth.user.id);
+    const account = await fetchAccount(auth.user.userId);
 
     if (!account?.hasSubscription) {
-      const count = await getWebsiteCount(auth.user.id);
+      const count = await getWebsiteCount(auth.user.userId);
 
       if (count >= CLOUD_WEBSITE_LIMIT) {
         return unauthorized({ message: 'Website limit reached.' });
@@ -71,14 +71,14 @@ export async function POST(request: Request) {
 
   const data: any = {
     id: id ?? await uuid(),
-    createdBy: auth.user.id,
+    createdBy: auth.user.userId,
     name,
     domain,
     teamId,
   };
 
   if (!teamId) {
-    data.userId = auth.user.id;
+    data.userId = auth.user.userId;
   }
 
   const website = await createWebsite(data);

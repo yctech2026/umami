@@ -2,11 +2,13 @@ import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from '
 import * as schema from '../../../drizzle/schema';
 import type { QueryFilters } from '@/lib/types';
 import { getDrizzleClient } from '@/lib/drizzle-client';
-
 const DEFAULT_PAGE_SIZE = 50;
 
-function getDb() {
-  return getDrizzleClient();
+let _db: any;
+
+async function getDb(): Promise<any> {
+  if (!_db) _db = await getDrizzleClient();
+  return _db;
 }
 
 export async function findLink(criteria: Record<string, any>) {
@@ -18,14 +20,14 @@ export async function findLink(criteria: Record<string, any>) {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = getDb().select().from(schema.link);
+  let query = (await getDb()).select().from(schema.link);
   if (whereClause) query = query.where(whereClause);
 
   return query.get();
 }
 
 export async function getLink(linkId: string) {
-  return getDb()
+  return (await getDb())
     .select()
     .from(schema.link)
     .where(eq(schema.link.linkId, linkId))
@@ -61,7 +63,7 @@ export async function getLinks(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let query = getDb().select().from(schema.link);
+  let query = (await getDb()).select().from(schema.link);
   if (whereClause) query = query.where(whereClause);
 
   if (orderBy) {
@@ -76,7 +78,7 @@ export async function getLinks(
 
   const data = await query;
 
-  let countQuery = getDb().select({ count: count() }).from(schema.link);
+  let countQuery = (await getDb()).select({ count: count() }).from(schema.link);
   if (whereClause) countQuery = countQuery.where(whereClause);
   const countResult = await countQuery.get();
 
@@ -114,7 +116,7 @@ export async function getTeamLinks(teamId: string, filters?: QueryFilters) {
 }
 
 export async function createLink(data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .insert(schema.link)
     .values(data)
     .returning()
@@ -123,7 +125,7 @@ export async function createLink(data: Record<string, any>) {
 }
 
 export async function updateLink(linkId: string, data: Record<string, any>) {
-  return getDb()
+  return (await getDb())
     .update(schema.link)
     .set(data)
     .where(eq(schema.link.linkId, linkId))
@@ -133,7 +135,7 @@ export async function updateLink(linkId: string, data: Record<string, any>) {
 }
 
 export async function deleteLink(linkId: string) {
-  return getDb()
+  return (await getDb())
     .delete(schema.link)
     .where(eq(schema.link.linkId, linkId))
     .returning()

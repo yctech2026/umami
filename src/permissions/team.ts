@@ -12,7 +12,7 @@ export async function canViewTeam({ user }: Auth, teamId: string) {
     return true;
   }
 
-  return getTeamUser(teamId, user.id);
+  return getTeamUser(teamId, user.userId);
 }
 
 export async function canCreateTeam({ user }: Auth) {
@@ -36,7 +36,7 @@ export async function canUpdateTeam({ user }: Auth, teamId: string) {
     return true;
   }
 
-  const teamUser = await getTeamUser(teamId, user.id);
+  const teamUser = await getTeamUser(teamId, user.userId);
 
   return teamUser && hasPermission(teamUser.role, PERMISSIONS.teamUpdate);
 }
@@ -50,7 +50,7 @@ export async function canDeleteTeam({ user }: Auth, teamId: string) {
     return true;
   }
 
-  const teamUser = await getTeamUser(teamId, user.id);
+  const teamUser = await getTeamUser(teamId, user.userId);
 
   return teamUser && hasPermission(teamUser.role, PERMISSIONS.teamDelete);
 }
@@ -64,11 +64,11 @@ export async function canDeleteTeamUser({ user }: Auth, teamId: string, removeUs
     return true;
   }
 
-  if (removeUserId === user.id) {
+  if (removeUserId === user.userId) {
     return true;
   }
 
-  const teamUser = await getTeamUser(teamId, user.id);
+  const teamUser = await getTeamUser(teamId, user.userId);
 
   return teamUser && hasPermission(teamUser.role, PERMISSIONS.teamUpdate);
 }
@@ -82,7 +82,7 @@ export async function canCreateTeamWebsite({ user }: Auth, teamId: string) {
     return true;
   }
 
-  const teamUser = await getTeamUser(teamId, user.id);
+  const teamUser = await getTeamUser(teamId, user.userId);
 
   return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteCreate);
 }

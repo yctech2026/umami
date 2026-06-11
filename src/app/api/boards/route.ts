@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   const filters = await getQueryFilters(query);
 
-  const boards = await getUserBoards(auth.user.id, filters);
+  const boards = await getUserBoards(auth.user.userId, filters);
 
   return json(boards);
 }
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     type: normalizeBoardType(body.type),
     id: uuid(),
     parameters: body.parameters ?? {},
-    userId: !teamId ? auth.user.id : undefined,
+    userId: !teamId ? auth.user.userId : undefined,
   };
 
   const result = await createBoard(data);

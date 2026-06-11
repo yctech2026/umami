@@ -76,7 +76,7 @@ export async function POST(
     });
 
     if (shareId === null) {
-      await deleteSharesByEntityId(website.id);
+      await deleteSharesByEntityId(website.websiteId);
     }
 
     const share = shareId

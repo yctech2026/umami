@@ -23,11 +23,11 @@ export async function canViewBoard({ user, shareToken }: Auth, boardId: string) 
   }
 
   if (board.userId) {
-    return user.id === board.userId;
+    return user.userId === board.userId;
   }
 
   if (board.teamId) {
-    const teamUser = await getTeamUser(board.teamId, user.id);
+    const teamUser = await getTeamUser(board.teamId, user.userId);
 
     return !!teamUser;
   }
@@ -51,11 +51,11 @@ export async function canUpdateBoard({ user }: Auth, boardId: string) {
   }
 
   if (board.userId) {
-    return user.id === board.userId;
+    return user.userId === board.userId;
   }
 
   if (board.teamId) {
-    const teamUser = await getTeamUser(board.teamId, user.id);
+    const teamUser = await getTeamUser(board.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
   }
@@ -79,11 +79,11 @@ export async function canDeleteBoard({ user }: Auth, boardId: string) {
   }
 
   if (board.userId) {
-    return user.id === board.userId;
+    return user.userId === board.userId;
   }
 
   if (board.teamId) {
-    const teamUser = await getTeamUser(board.teamId, user.id);
+    const teamUser = await getTeamUser(board.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
   }

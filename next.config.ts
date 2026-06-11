@@ -225,16 +225,33 @@ export default withNextIntl({
     root: __dirname,
   },
   webpack: (config, { isServer, webpack }) => {
-    // 移除默认的 CSS exclude 规则，让 Next.js 内置 CSS 支持正常工作
-    // @umami/react-zen 在 transpilePackages 中，其 CSS 会被 Next.js 自动处理
-    const cssRules = config.module.rules.filter(
-      rule => rule.test && rule.test.toString().includes('\\.css$')
+    // 移除所有现有 CSS 规则，由我们统一处理所有 CSS
+    // 必须这样做，因为我们使用 postcss-loader 处理 Tailwind v4 @layer 语法
+    config.module.rules = config.module.rules.filter(
+      rule => !(rule.test && typeof rule.test === 'object' && rule.test.toString().includes('\\.css$'))
     );
-    for (const rule of cssRules) {
-      if (rule.exclude) {
-        rule.exclude = undefined;
-      }
-    }
+
+    // 处理 @umami/react-zen 的 CSS（Tailwind v4 @layer 语法需要 postcss-loader）
+    config.module.rules.push({
+      test: /node_modules\/@umami\/react-zen.*\.css$/,
+      use: [
+        'style-loader',
+        { loader: 'css-loader', options: { importLoaders: 1 } },
+        'postcss-loader',
+      ],
+    });
+
+
+    // 处理应用自身的 CSS（global.css 等）
+    config.module.rules.push({
+      test: /\.css$/,
+      exclude: /node_modules/,
+      use: [
+        'style-loader',
+        { loader: 'css-loader', options: { importLoaders: 1 } },
+        'postcss-loader',
+      ],
+    });
 
     if (isServer) {
       config.optimization.minimize = true;

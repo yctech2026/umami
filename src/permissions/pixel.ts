@@ -19,11 +19,11 @@ export async function canViewPixel({ user, shareToken }: Auth, pixelId: string) 
   const pixel = await getPixel(pixelId);
 
   if (pixel.userId) {
-    return user.id === pixel.userId;
+    return user.userId === pixel.userId;
   }
 
   if (pixel.teamId) {
-    const teamUser = await getTeamUser(pixel.teamId, user.id);
+    const teamUser = await getTeamUser(pixel.teamId, user.userId);
 
     return !!teamUser;
   }
@@ -43,11 +43,11 @@ export async function canUpdatePixel({ user }: Auth, pixelId: string) {
   const pixel = await getPixel(pixelId);
 
   if (pixel.userId) {
-    return user.id === pixel.userId;
+    return user.userId === pixel.userId;
   }
 
   if (pixel.teamId) {
-    const teamUser = await getTeamUser(pixel.teamId, user.id);
+    const teamUser = await getTeamUser(pixel.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
   }
@@ -67,11 +67,11 @@ export async function canDeletePixel({ user }: Auth, pixelId: string) {
   const pixel = await getPixel(pixelId);
 
   if (pixel.userId) {
-    return user.id === pixel.userId;
+    return user.userId === pixel.userId;
   }
 
   if (pixel.teamId) {
-    const teamUser = await getTeamUser(pixel.teamId, user.id);
+    const teamUser = await getTeamUser(pixel.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
   }

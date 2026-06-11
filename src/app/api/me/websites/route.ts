@@ -19,8 +19,8 @@ export async function GET(request: Request) {
   const filters = await getQueryFilters(query);
 
   if (query.includeTeams) {
-    return json(await getAllUserWebsitesIncludingTeamOwner(auth.user.id, filters));
+    return json(await getAllUserWebsitesIncludingTeamOwner(auth.user.userId, filters));
   }
 
-  return json(await getUserWebsites(auth.user.id, filters));
+  return json(await getUserWebsites(auth.user.userId, filters));
 }

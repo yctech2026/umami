@@ -27,11 +27,11 @@ export async function canViewWebsite({ user, shareToken }: Auth, websiteId: stri
   }
 
   if (entity.userId) {
-    return user.id === entity.userId;
+    return user.userId === entity.userId;
   }
 
   if (entity.teamId) {
-    const teamUser = await getTeamUser(entity.teamId, user.id);
+    const teamUser = await getTeamUser(entity.teamId, user.userId);
 
     return !!teamUser;
   }
@@ -71,11 +71,11 @@ export async function canUpdateWebsite({ user }: Auth, websiteId: string) {
   }
 
   if (website.userId) {
-    return user.id === website.userId;
+    return user.userId === website.userId;
   }
 
   if (website.teamId) {
-    const teamUser = await getTeamUser(website.teamId, user.id);
+    const teamUser = await getTeamUser(website.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
   }
@@ -99,11 +99,11 @@ export async function canDeleteWebsite({ user }: Auth, websiteId: string) {
   }
 
   if (website.userId) {
-    return user.id === website.userId;
+    return user.userId === website.userId;
   }
 
   if (website.teamId) {
-    const teamUser = await getTeamUser(website.teamId, user.id);
+    const teamUser = await getTeamUser(website.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
   }
@@ -122,7 +122,7 @@ export async function canTransferWebsiteToUser({ user }: Auth, websiteId: string
     return false;
   }
 
-  if (website.teamId && user.id === userId) {
+  if (website.teamId && user.userId === userId) {
     const teamUser = await getTeamUser(website.teamId, userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteTransferToUser);
@@ -142,8 +142,8 @@ export async function canTransferWebsiteToTeam({ user }: Auth, websiteId: string
     return false;
   }
 
-  if (website.userId && website.userId === user.id) {
-    const teamUser = await getTeamUser(teamId, user.id);
+  if (website.userId && website.userId === user.userId) {
+    const teamUser = await getTeamUser(teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteTransferToTeam);
   }

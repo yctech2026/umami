@@ -19,11 +19,11 @@ export async function canViewLink({ user, shareToken }: Auth, linkId: string) {
   const link = await getLink(linkId);
 
   if (link.userId) {
-    return user.id === link.userId;
+    return user.userId === link.userId;
   }
 
   if (link.teamId) {
-    const teamUser = await getTeamUser(link.teamId, user.id);
+    const teamUser = await getTeamUser(link.teamId, user.userId);
 
     return !!teamUser;
   }
@@ -43,11 +43,11 @@ export async function canUpdateLink({ user }: Auth, linkId: string) {
   const link = await getLink(linkId);
 
   if (link.userId) {
-    return user.id === link.userId;
+    return user.userId === link.userId;
   }
 
   if (link.teamId) {
-    const teamUser = await getTeamUser(link.teamId, user.id);
+    const teamUser = await getTeamUser(link.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
   }
@@ -67,11 +67,11 @@ export async function canDeleteLink({ user }: Auth, linkId: string) {
   const link = await getLink(linkId);
 
   if (link.userId) {
-    return user.id === link.userId;
+    return user.userId === link.userId;
   }
 
   if (link.teamId) {
-    const teamUser = await getTeamUser(link.teamId, user.id);
+    const teamUser = await getTeamUser(link.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
   }

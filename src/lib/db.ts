@@ -3,7 +3,7 @@ export const CLICKHOUSE = 'clickhouse';
 export const PRISMA = 'prisma';
 
 // Fixes issue with converting bigint values
-BigInt.prototype.toJSON = function () {
+(BigInt.prototype as any).toJSON = function () {
   return Number(this);
 };
 

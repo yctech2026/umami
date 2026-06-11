@@ -4,6 +4,7 @@ import { uuid } from '@/lib/crypto';
 import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import kafka from '@/lib/kafka';
 import prisma from '@/lib/prisma';
+import * as schema from '../../../../drizzle/schema';
 import { saveEventData } from './saveEventData';
 import { saveRevenue } from './saveRevenue';
 
@@ -104,40 +105,38 @@ async function relationalQuery({
 }: SaveEventArgs) {
   const websiteEventId = uuid();
 
-  await prisma.client.websiteEvent.create({
-    data: {
-      id: websiteEventId,
-      websiteId,
-      sessionId,
-      visitId,
-      urlPath: urlPath?.substring(0, URL_LENGTH),
-      urlQuery: urlQuery?.substring(0, URL_LENGTH),
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      utmContent,
-      utmTerm,
-      referrerPath: referrerPath?.substring(0, URL_LENGTH),
-      referrerQuery: referrerQuery?.substring(0, URL_LENGTH),
-      referrerDomain: referrerDomain?.substring(0, URL_LENGTH),
-      pageTitle: pageTitle?.substring(0, PAGE_TITLE_LENGTH),
-      gclid,
-      fbclid,
-      msclkid,
-      ttclid,
-      lifatid,
-      twclid,
-      eventType,
-      eventName: eventName ? eventName?.substring(0, EVENT_NAME_LENGTH) : null,
-      tag,
-      hostname,
-      lcp,
-      inp,
-      cls,
-      fcp,
-      ttfb,
-      createdAt,
-    },
+  await prisma.client.insert(schema.websiteEvent).values({
+    eventId: websiteEventId,
+    websiteId,
+    sessionId,
+    visitId,
+    urlPath: urlPath?.substring(0, URL_LENGTH),
+    urlQuery: urlQuery?.substring(0, URL_LENGTH),
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmContent,
+    utmTerm,
+    referrerPath: referrerPath?.substring(0, URL_LENGTH),
+    referrerQuery: referrerQuery?.substring(0, URL_LENGTH),
+    referrerDomain: referrerDomain?.substring(0, URL_LENGTH),
+    pageTitle: pageTitle?.substring(0, PAGE_TITLE_LENGTH),
+    gclid,
+    fbclid,
+    msclkid,
+    ttclid,
+    liFatId: lifatid,
+    twclid,
+    eventType,
+    eventName: eventName ? eventName?.substring(0, EVENT_NAME_LENGTH) : null,
+    tag,
+    hostname,
+    lcp,
+    inp,
+    cls,
+    fcp,
+    ttfb,
+    createdAt: createdAt?.toISOString(),
   });
 
   if (eventData) {

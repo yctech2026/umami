@@ -13,7 +13,7 @@ export function WebsiteSettingsHeader() {
   return (
     <>
       <Row marginTop="6">
-        <Link href={renderUrl(`/websites/${website.id}`)}>
+        <Link href={renderUrl(`/websites/${website.websiteId}`)}>
           <IconLabel icon={<ArrowLeft />} label={t(labels.website)} />
         </Link>
       </Row>

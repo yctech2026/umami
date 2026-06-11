@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return unauthorized({ code: 'incorrect-username-password' });
   }
 
-  const { id, role, createdAt } = user;
+  const { userId: id, role, createdAt } = user;
 
   const token = await saveAuth({ userId: id, role });
 

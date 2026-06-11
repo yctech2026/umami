@@ -44,7 +44,7 @@ export function EventsChart({ websiteId, focusLabel, limit }: EventsChartProps) 
       return {
         datasets: [
           {
-            data: generateTimeSeries([], startDate, endDate, unit, dateLocale),
+            data: generateTimeSeries([], startDate, endDate, unit, locale),
             lineTension: 0,
             borderWidth: 1,
           },
@@ -56,7 +56,7 @@ export function EventsChart({ websiteId, focusLabel, limit }: EventsChartProps) 
           const color = colord(CHART_COLORS[index % CHART_COLORS.length]);
           return {
             label: key,
-            data: generateTimeSeries(map[key], startDate, endDate, unit, dateLocale),
+            data: generateTimeSeries(map[key], startDate, endDate, unit, locale),
             lineTension: 0,
             backgroundColor: color.alpha(0.6).toRgbString(),
             borderColor: color.alpha(0.7).toRgbString(),

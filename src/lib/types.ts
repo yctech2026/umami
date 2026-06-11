@@ -14,7 +14,7 @@ export type Operator = (typeof OPERATORS)[keyof typeof OPERATORS];
 
 export interface Auth {
   user?: {
-    id: string;
+    userId: string;
     username: string;
     role: string;
     isAdmin: boolean;

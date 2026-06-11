@@ -20,11 +20,11 @@ export async function canViewEntity({ user }: Auth, entityId: string) {
   }
 
   if (entity.userId) {
-    return user.id === entity.userId;
+    return user.userId === entity.userId;
   }
 
   if (entity.teamId) {
-    const teamUser = await getTeamUser(entity.teamId, user.id);
+    const teamUser = await getTeamUser(entity.teamId, user.userId);
 
     return !!teamUser;
   }
@@ -48,11 +48,11 @@ export async function canUpdateEntity({ user }: Auth, entityId: string) {
   }
 
   if (entity.userId) {
-    return user.id === entity.userId;
+    return user.userId === entity.userId;
   }
 
   if (entity.teamId) {
-    const teamUser = await getTeamUser(entity.teamId, user.id);
+    const teamUser = await getTeamUser(entity.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
   }
@@ -76,11 +76,11 @@ export async function canDeleteEntity({ user }: Auth, entityId: string) {
   }
 
   if (entity.userId) {
-    return user.id === entity.userId;
+    return user.userId === entity.userId;
   }
 
   if (entity.teamId) {
-    const teamUser = await getTeamUser(entity.teamId, user.id);
+    const teamUser = await getTeamUser(entity.teamId, user.userId);
 
     return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
   }

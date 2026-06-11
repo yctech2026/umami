@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 
   const filters = await getQueryFilters(query);
 
-  const teams = await getUserTeams(auth.user.id, filters);
+  const teams = await getUserTeams(auth.user.userId, filters);
 
   return json(teams);
 }
