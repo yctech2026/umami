@@ -31,20 +31,30 @@ async function relationalQuery(
 
   const result = await rawQuery(
     `
+    with stats as (
+      select
+        lcp, inp, cls, fcp, ttfb,
+        row_number() over (order by lcp) as lcp_rn,
+        row_number() over (order by inp) as inp_rn,
+        row_number() over (order by cls) as cls_rn,
+        row_number() over (order by fcp) as fcp_rn,
+        row_number() over (order by ttfb) as ttfb_rn,
+        count(*) over () as cnt
+      from website_event
+      ${cohortQuery}
+      ${joinSessionQuery}
+      where website_event.website_id = {{websiteId}}
+        and website_event.event_type = 5
+        and website_event.created_at between {{startDate}} and {{endDate}}
+        ${filterQuery}
+    )
     select
-      percentile_cont(0.75) within group (order by lcp) as lcp,
-      percentile_cont(0.75) within group (order by inp) as inp,
-      percentile_cont(0.75) within group (order by cls) as cls,
-      percentile_cont(0.75) within group (order by fcp) as fcp,
-      percentile_cont(0.75) within group (order by ttfb) as ttfb,
-      count(*) as count
-    from website_event
-    ${cohortQuery}
-    ${joinSessionQuery}
-    where website_event.website_id = {{websiteId}}
-      and website_event.event_type = 5
-      and website_event.created_at between {{startDate}} and {{endDate}}
-      ${filterQuery}
+      (select lcp from stats where lcp_rn = round(cnt * 0.75)) as lcp,
+      (select inp from stats where inp_rn = round(cnt * 0.75)) as inp,
+      (select cls from stats where cls_rn = round(cnt * 0.75)) as cls,
+      (select fcp from stats where fcp_rn = round(cnt * 0.75)) as fcp,
+      (select ttfb from stats where ttfb_rn = round(cnt * 0.75)) as ttfb,
+      (select count(*) from stats) as count
     `,
     queryParams,
   );

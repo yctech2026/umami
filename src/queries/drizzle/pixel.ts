@@ -71,7 +71,8 @@ export async function getTeamPixels(teamId: string, filters?: QueryFilters) {
 }
 
 export async function createPixel(data: any) {
-  return db.insert(schema.pixel).values(data).returning().all().then(r => r[0]);
+  const { id, ...rest } = data;
+  return db.insert(schema.pixel).values({ pixelId: id, ...rest }).returning().all().then(r => r[0]);
 }
 
 export async function updatePixel(pixelId: string, data: any) {

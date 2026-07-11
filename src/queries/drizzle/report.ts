@@ -143,9 +143,10 @@ export async function getWebsiteReports(
 }
 
 export async function createReport(data: Record<string, any>) {
+  const { id, ...rest } = data;
   return (await getDb())
     .insert(schema.report)
-    .values(data)
+    .values({ reportId: id, ...rest })
     .returning()
     .all()
     .then(r => r[0]);

@@ -1,7 +1,7 @@
 import { eq, and, or, not, asc, desc, count, like, sql, inArray, isNull } from 'drizzle-orm';
 import * as schema from '../../../drizzle/schema';
 import { getBoolEnv } from '@/lib/env';
-import { ROLES } from '@/lib/constants';
+import { ROLES, ENTITY_TYPE } from '@/lib/constants';
 import prisma from '@/lib/db';
 import type { QueryFilters } from '@/lib/types';
 
@@ -405,43 +405,56 @@ export async function resetWebsite(websiteId: string) {
 }
 
 export async function deleteWebsite(websiteId: string) {
-  const db = prisma.client;
-  const cloudMode = getBoolEnv('CLOUD_MODE');
+  try {
+    const db = prisma.client;
+    const cloudMode = getBoolEnv('CLOUD_MODE');
 
-  return prisma.transaction(
-    async (tx: typeof db) => {
-      await tx.delete(schema.sessionReplaySaved).where(eq(schema.sessionReplaySaved.websiteId, websiteId)).run();
-      await tx.delete(schema.sessionReplay).where(eq(schema.sessionReplay.websiteId, websiteId)).run();
-      await tx.delete(schema.revenue).where(eq(schema.revenue.websiteId, websiteId)).run();
-      await tx.delete(schema.eventData).where(eq(schema.eventData.websiteId, websiteId)).run();
-      await tx.delete(schema.sessionData).where(eq(schema.sessionData.websiteId, websiteId)).run();
-      await tx.delete(schema.websiteEvent).where(eq(schema.websiteEvent.websiteId, websiteId)).run();
-      await tx.delete(schema.session).where(eq(schema.session.websiteId, websiteId)).run();
-      await tx.delete(schema.report).where(eq(schema.report.websiteId, websiteId)).run();
-      await tx.delete(schema.segment).where(eq(schema.segment.websiteId, websiteId)).run();
-      await tx.delete(schema.share).where(eq(schema.share.entityId, websiteId)).run();
+    return await prisma.transaction(
+      async (tx: typeof db) => {
+        await tx.delete(schema.sessionReplaySaved).where(eq(schema.sessionReplaySaved.websiteId, websiteId)).run();
+        await tx.delete(schema.sessionReplay).where(eq(schema.sessionReplay.websiteId, websiteId)).run();
+        await tx.delete(schema.revenue).where(eq(schema.revenue.websiteId, websiteId)).run();
+        await tx.delete(schema.eventData).where(eq(schema.eventData.websiteId, websiteId)).run();
+        await tx.delete(schema.sessionData).where(eq(schema.sessionData.websiteId, websiteId)).run();
+        await tx.delete(schema.websiteEvent).where(eq(schema.websiteEvent.websiteId, websiteId)).run();
+        await tx.delete(schema.session).where(eq(schema.session.websiteId, websiteId)).run();
+        await tx.delete(schema.report).where(eq(schema.report.websiteId, websiteId)).run();
+        await tx.delete(schema.segment).where(eq(schema.segment.websiteId, websiteId)).run();
+        await tx
+          .delete(schema.share)
+          .where(
+            and(
+              eq(schema.share.entityId, websiteId),
+              eq(schema.share.shareType, ENTITY_TYPE.website),
+            ),
+          )
+          .run();
 
-      const website = cloudMode
-        ? await tx
-            .update(schema.website)
-            .set({ deletedAt: sql`(datetime('now'))` })
-            .where(eq(schema.website.websiteId, websiteId))
-            .returning()
-            .all()
-            .then(r => r[0])
-        : await tx
-            .delete(schema.website)
-            .where(eq(schema.website.websiteId, websiteId))
-            .returning()
-            .all()
-            .then(r => r[0]);
+        const website = cloudMode
+          ? await tx
+              .update(schema.website)
+              .set({ deletedAt: sql`(datetime('now'))` })
+              .where(eq(schema.website.websiteId, websiteId))
+              .returning()
+              .all()
+              .then(r => r[0])
+          : await tx
+              .delete(schema.website)
+              .where(eq(schema.website.websiteId, websiteId))
+              .returning()
+              .all()
+              .then(r => r[0]);
 
-      return website;
-    },
-    {
-      timeout: 30000,
-    },
-  );
+        return website;
+      },
+      {
+        timeout: 30000,
+      },
+    );
+  } catch (error) {
+    console.error('deleteWebsite failed:', error);
+    throw error;
+  }
 }
 
 export async function getWebsiteCount(userId: string) {

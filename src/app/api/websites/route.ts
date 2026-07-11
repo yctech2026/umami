@@ -62,11 +62,14 @@ export async function POST(request: Request) {
       }
     }
 
-    if (
-      (teamId && !(await canCreateTeamWebsite(auth, teamId))) ||
-      !(await canCreateWebsite(auth))
-    ) {
-      return unauthorized();
+    if (teamId) {
+      if (!(await canCreateTeamWebsite(auth, teamId))) {
+        return unauthorized();
+      }
+    } else {
+      if (!(await canCreateWebsite(auth))) {
+        return unauthorized();
+      }
     }
 
     const data: any = {

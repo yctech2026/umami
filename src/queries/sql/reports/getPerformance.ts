@@ -46,18 +46,25 @@ async function relationalQuery(
 
   const chart = await rawQuery(
     `
-    select
-      ${getDateSQL('created_at', unit, timezone)} t,
-      percentile_cont(0.5) within group (order by ${metric}) as p50,
-      percentile_cont(0.75) within group (order by ${metric}) as p75,
-      percentile_cont(0.95) within group (order by ${metric}) as p95
-    from website_event
-    ${cohortQuery}
-    ${joinSessionQuery}
-    where website_event.website_id = {{websiteId}}
-      and website_event.event_type = 5
-      and website_event.created_at between {{startDate}} and {{endDate}}
-      ${filterQuery}
+    with ordered as (
+      select
+        ${getDateSQL('created_at', unit, timezone)} t,
+        ${metric} as val,
+        row_number() over (partition by ${getDateSQL('created_at', unit, timezone)} order by ${metric}) as rn,
+        count(*) over (partition by ${getDateSQL('created_at', unit, timezone)}) as cnt
+      from website_event
+      ${cohortQuery}
+      ${joinSessionQuery}
+      where website_event.website_id = {{websiteId}}
+        and website_event.event_type = 5
+        and website_event.created_at between {{startDate}} and {{endDate}}
+        ${filterQuery}
+    )
+    select t,
+      max(case when rn = round(cnt * 0.5) then val end) as p50,
+      max(case when rn = round(cnt * 0.75) then val end) as p75,
+      max(case when rn = round(cnt * 0.95) then val end) as p95
+    from ordered
     group by t
     order by t
     `,
@@ -66,30 +73,40 @@ async function relationalQuery(
 
   const summaryResult = await rawQuery(
     `
+    with stats as (
+      select
+        lcp, inp, cls, fcp, ttfb,
+        row_number() over (order by lcp) as lcp_rn,
+        row_number() over (order by inp) as inp_rn,
+        row_number() over (order by cls) as cls_rn,
+        row_number() over (order by fcp) as fcp_rn,
+        row_number() over (order by ttfb) as ttfb_rn,
+        count(*) over () as cnt
+      from website_event
+      ${cohortQuery}
+      ${joinSessionQuery}
+      where website_event.website_id = {{websiteId}}
+        and website_event.event_type = 5
+        and website_event.created_at between {{startDate}} and {{endDate}}
+        ${filterQuery}
+    )
     select
-      percentile_cont(0.5) within group (order by lcp) as lcp_p50,
-      percentile_cont(0.75) within group (order by lcp) as lcp_p75,
-      percentile_cont(0.95) within group (order by lcp) as lcp_p95,
-      percentile_cont(0.5) within group (order by inp) as inp_p50,
-      percentile_cont(0.75) within group (order by inp) as inp_p75,
-      percentile_cont(0.95) within group (order by inp) as inp_p95,
-      percentile_cont(0.5) within group (order by cls) as cls_p50,
-      percentile_cont(0.75) within group (order by cls) as cls_p75,
-      percentile_cont(0.95) within group (order by cls) as cls_p95,
-      percentile_cont(0.5) within group (order by fcp) as fcp_p50,
-      percentile_cont(0.75) within group (order by fcp) as fcp_p75,
-      percentile_cont(0.95) within group (order by fcp) as fcp_p95,
-      percentile_cont(0.5) within group (order by ttfb) as ttfb_p50,
-      percentile_cont(0.75) within group (order by ttfb) as ttfb_p75,
-      percentile_cont(0.95) within group (order by ttfb) as ttfb_p95,
-      count(*) as count
-    from website_event
-    ${cohortQuery}
-    ${joinSessionQuery}
-    where website_event.website_id = {{websiteId}}
-      and website_event.event_type = 5
-      and website_event.created_at between {{startDate}} and {{endDate}}
-      ${filterQuery}
+      (select lcp from stats where lcp_rn = round(cnt * 0.5)) as lcp_p50,
+      (select lcp from stats where lcp_rn = round(cnt * 0.75)) as lcp_p75,
+      (select lcp from stats where lcp_rn = round(cnt * 0.95)) as lcp_p95,
+      (select inp from stats where inp_rn = round(cnt * 0.5)) as inp_p50,
+      (select inp from stats where inp_rn = round(cnt * 0.75)) as inp_p75,
+      (select inp from stats where inp_rn = round(cnt * 0.95)) as inp_p95,
+      (select cls from stats where cls_rn = round(cnt * 0.5)) as cls_p50,
+      (select cls from stats where cls_rn = round(cnt * 0.75)) as cls_p75,
+      (select cls from stats where cls_rn = round(cnt * 0.95)) as cls_p95,
+      (select fcp from stats where fcp_rn = round(cnt * 0.5)) as fcp_p50,
+      (select fcp from stats where fcp_rn = round(cnt * 0.75)) as fcp_p75,
+      (select fcp from stats where fcp_rn = round(cnt * 0.95)) as fcp_p95,
+      (select ttfb from stats where ttfb_rn = round(cnt * 0.5)) as ttfb_p50,
+      (select ttfb from stats where ttfb_rn = round(cnt * 0.75)) as ttfb_p75,
+      (select ttfb from stats where ttfb_rn = round(cnt * 0.95)) as ttfb_p95,
+      (select count(*) from stats) as count
     `,
     { ...queryParams, startDate, endDate },
   ).then(result => result?.[0]);

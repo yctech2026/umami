@@ -47,7 +47,11 @@ async function relationalQuery(
   let excludeDomain = '';
 
   if (column === 'referrer_domain') {
-    excludeDomain = `and website_event.referrer_domain != regexp_replace(website_event.hostname, '^www.', '')
+    excludeDomain = `and website_event.referrer_domain != 
+      CASE WHEN substr(website_event.hostname, 1, 4) = 'www.' 
+        THEN substr(website_event.hostname, 5) 
+        ELSE website_event.hostname 
+      END
       and website_event.referrer_domain != ''`;
   }
 

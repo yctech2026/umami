@@ -116,9 +116,10 @@ export async function getTeamLinks(teamId: string, filters?: QueryFilters) {
 }
 
 export async function createLink(data: Record<string, any>) {
+  const { id, ...rest } = data;
   return (await getDb())
     .insert(schema.link)
-    .values(data)
+    .values({ linkId: id, ...rest })
     .returning()
     .all()
     .then(r => r[0]);

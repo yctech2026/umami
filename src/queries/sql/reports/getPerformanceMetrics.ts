@@ -44,20 +44,27 @@ async function relationalQuery(
 
   return rawQuery(
     `
-    select
-      ${column} as "name",
-      percentile_cont(0.5) within group (order by ${metric}) as p50,
-      percentile_cont(0.75) within group (order by ${metric}) as p75,
-      percentile_cont(0.95) within group (order by ${metric}) as p95,
-      count(*) as count
-    from website_event
-    ${cohortQuery}
-    ${joinSessionQuery}
-    where website_event.website_id = {{websiteId}}
-      and website_event.event_type = 5
-      and website_event.created_at between {{startDate}} and {{endDate}}
-      ${filterQuery}
-    group by ${column}
+    with ordered as (
+      select
+        ${column} as "name",
+        ${metric} as val,
+        row_number() over (partition by ${column} order by ${metric}) as rn,
+        count(*) over (partition by ${column}) as cnt
+      from website_event
+      ${cohortQuery}
+      ${joinSessionQuery}
+      where website_event.website_id = {{websiteId}}
+        and website_event.event_type = 5
+        and website_event.created_at between {{startDate}} and {{endDate}}
+        ${filterQuery}
+    )
+    select name,
+      max(case when rn = round(cnt * 0.5) then val end) as p50,
+      max(case when rn = round(cnt * 0.75) then val end) as p75,
+      max(case when rn = round(cnt * 0.95) then val end) as p95,
+      max(cnt) as count
+    from ordered
+    group by name
     order by p75 desc
     ${limit ? `limit ${limit}` : ''}
     `,

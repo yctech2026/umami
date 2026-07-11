@@ -123,9 +123,10 @@ export async function getTeamBoards(teamId: string, filters?: QueryFilters) {
 }
 
 export async function createBoard(data: Record<string, any>) {
+  const { id, ...rest } = data;
   return (await getDb())
     .insert(schema.board)
-    .values(data)
+    .values({ boardId: id, ...rest })
     .returning()
     .all()
     .then(r => r[0]);

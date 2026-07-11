@@ -65,7 +65,8 @@ export async function getSharesByEntityId(entityId: string, filters?: QueryFilte
 }
 
 export async function createShare(data: any) {
-  return db.insert(schema.share).values(data).returning().all().then(r => r[0]);
+  const { id, ...rest } = data;
+  return db.insert(schema.share).values({ shareId: id, ...rest }).returning().all().then(r => r[0]);
 }
 
 export async function updateShare(shareId: string, data: any) {

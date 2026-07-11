@@ -273,7 +273,7 @@ export const reportBaseSchema = z.object({
   type: reportTypeParam,
   name: z.string().max(200),
   description: z.string().max(500).optional(),
-  parameters: anyObjectParam,
+  parameters: anyObjectParam.optional(),
 });
 
 export const reportTypeSchema = z.discriminatedUnion('type', [

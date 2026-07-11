@@ -102,9 +102,10 @@ export async function getWebsiteSegments(
 }
 
 export async function createSegment(data: Record<string, any>) {
+  const { id, ...rest } = data;
   return (await getDb())
     .insert(schema.segment)
-    .values(data)
+    .values({ segmentId: id, ...rest })
     .returning()
     .all()
     .then(r => r[0]);

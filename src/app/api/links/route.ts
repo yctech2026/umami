@@ -42,8 +42,14 @@ export async function POST(request: Request) {
 
   const { id, name, url, slug, teamId } = body;
 
-  if ((teamId && !(await canCreateTeamWebsite(auth, teamId))) || !(await canCreateWebsite(auth))) {
-    return unauthorized();
+  if (teamId) {
+    if (!(await canCreateTeamWebsite(auth, teamId))) {
+      return unauthorized();
+    }
+  } else {
+    if (!(await canCreateWebsite(auth))) {
+      return unauthorized();
+    }
   }
 
   const data: any = {

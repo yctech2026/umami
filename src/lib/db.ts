@@ -62,6 +62,7 @@ function createD1WrapperFromLibsql(libsqlClient: any): any {
       }
       return results;
     },
+    transaction: () => libsqlClient.transaction(),
   };
 }
 
@@ -258,17 +259,17 @@ function mapFilter(
 
   switch (operator) {
     case OPERATORS.equals:
-      return `${table}.${column} = ANY(${value})`;
+      return `${table}.${column} IN (${value})`;
     case OPERATORS.notEquals:
-      return `${table}.${column} != ALL(${value})`;
+      return `${table}.${column} NOT IN (${value})`;
     case OPERATORS.contains:
       return `${table}.${column} like ${value}`;
     case OPERATORS.doesNotContain:
       return `${table}.${column} not like ${value}`;
     case OPERATORS.regex:
-      return `${table}.${column} ~* ${value}`;
+      return `LOWER(${table}.${column}) LIKE LOWER(${value})`;
     case OPERATORS.notRegex:
-      return `${table}.${column} !~* ${value}`;
+      return `LOWER(${table}.${column}) NOT LIKE LOWER(${value})`;
     default:
       return '';
   }
@@ -300,7 +301,7 @@ function getFilterQuery(filters: Record<string, any>, options: QueryOptions = {}
 
         if (name === 'referrer') {
           andClauses.push(
-            `and (website_event.referrer_domain != regexp_replace(website_event.hostname, '^www.', '') or website_event.referrer_domain is null)`,
+            `and (website_event.referrer_domain != CASE WHEN substr(website_event.hostname, 1, 4) = 'www.' THEN substr(website_event.hostname, 5) ELSE website_event.hostname END or website_event.referrer_domain is null)`,
           );
         }
       }
@@ -463,7 +464,11 @@ export async function rawQuery(sql: string, data: Record<string, any>, name?: st
   const query = sql?.replaceAll(/\{\{\s*(\w+)(::\w+)?\s*}}/g, (...args) => {
     const [, name] = args;
     const value = data[name];
-    params.push(value);
+    if (Array.isArray(value)) {
+      value.forEach(v => params.push(v === undefined ? null : v instanceof Date ? v.toISOString() : v));
+      return value.map(() => '?').join(', ');
+    }
+    params.push(value === undefined ? null : value instanceof Date ? value.toISOString() : value);
     return '?';
   });
 
@@ -473,10 +478,38 @@ export async function rawQuery(sql: string, data: Record<string, any>, name?: st
 }
 
 /**
+ * Prisma 模型名到 Drizzle 表名的映射。
+ * Prisma 使用 camelCase 模型名（如 teamUser），但 Drizzle raw SQL 需要 snake_case 表名（如 team_user）。
+ */
+const MODEL_TABLE_MAP: Record<string, string> = {
+  teamUser: 'team_user',
+  websiteEvent: 'website_event',
+  eventData: 'event_data',
+  sessionData: 'session_data',
+  sessionReplay: 'session_replay',
+  sessionReplaySaved: 'session_replay_saved',
+  user: 'user',
+  website: 'website',
+  session: 'session',
+  team: 'team',
+  pixel: 'pixel',
+  report: 'report',
+  segment: 'segment',
+  revenue: 'revenue',
+  link: 'link',
+  board: 'board',
+  share: 'share',
+};
+
+/**
  * 分页查询（使用 D1 raw SQL 实现，兼容现有 string model name 调用）
  * 保留分页/排序逻辑，criteria 中的 Prisma 特定条件需迁移到 Drizzle 后适配
+ *
+ * model 参数使用 Prisma 风格 camelCase 名称（如 teamUser），
+ * 通过 MODEL_TABLE_MAP 映射为 Drizzle 实际 snake_case 表名。
  */
 export async function pagedQuery<T>(model: string, criteria: any, filters?: QueryFilters) {
+  const tableName = MODEL_TABLE_MAP[model] || model;
   const { page = 1, pageSize, orderBy, sortDescending = false, search } = filters || {};
   const size = +pageSize || DEFAULT_PAGE_SIZE;
   const offset = +size * (+page - 1);
@@ -490,13 +523,13 @@ export async function pagedQuery<T>(model: string, criteria: any, filters?: Quer
     .join('\n');
 
   const data = await rawQuery(
-    `select * from ${model} ${statements}`,
+    `select * from ${tableName} ${statements}`,
     {},
     `pagedQuery:${model}:data`,
   );
 
   const count = await rawQuery(
-    `select count(*) as num from ${model}`,
+    `select count(*) as num from ${tableName}`,
     {},
   ).then(res => Number(res[0]?.num || 0));
 
@@ -563,11 +596,29 @@ function getSearchParameters(query: string, filters: Record<string, any>[]) {
  * 事务支持
  * - callback 模式: transaction(async tx => { ... }, { timeout })
  * - array 模式: transaction([op1, op2, ...]) → 通过 D1 batch 实现
+ *
+ * 注意：drizzle-orm/d1 的 SQLiteD1Session.transaction() 使用 SQL BEGIN 语句，
+ * 但 Cloudflare D1 禁止 SQL BEGIN/COMMIT（必须用 JavaScript API）。
+ * 因此对于 D1 后端，我们不调用 client.transaction()，而是直接执行 callback。
  */
 async function transaction(input: any, options?: any) {
   if (typeof input === 'function') {
-    // Callback 模式：使用 Drizzle 的事务 API
+    // Callback 模式
     const client = await getDrizzleClient();
+    const raw = await getRawDB();
+
+    // 检测是否为 D1 binding（而非 libsql wrapper）
+    const isD1 =
+      typeof raw?.prepare === 'function' &&
+      raw?.constructor?.name !== 'Object';
+
+    if (isD1) {
+      // D1 不支持 SQL BEGIN/COMMIT，直接执行回调
+      // D1 单语句是 ACID 的；如需原子多语句应使用 batch()
+      return input(client);
+    }
+
+    // libsql 后端：使用 drizzle 的事务 API
     return client.transaction(async (tx) => {
       return input(tx);
     });
@@ -583,7 +634,10 @@ async function transaction(input: any, options?: any) {
     const preparedStatements = input.map((op: any) => {
       if (typeof op?.toSQL === 'function') {
         const stmt = op.toSQL();
-        return d1.prepare(stmt.sql).bind(...stmt.params);
+        const sanitizedParams = stmt.params.map((p: any) =>
+          p === undefined ? null : p instanceof Date ? p.toISOString() : p,
+        );
+        return d1.prepare(stmt.sql).bind(...sanitizedParams);
       }
       // 如果是原始 SQL 字符串
       if (typeof op === 'string') {
