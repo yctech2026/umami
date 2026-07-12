@@ -1,15 +1,2 @@
-export default {
-  plugins: {
-    '@tailwindcss/postcss': {},
-    'postcss-flexbugs-fixes': {},
-    'postcss-preset-env': {
-      autoprefixer: {
-        flexbox: 'no-2009',
-      },
-      stage: 3,
-      features: {
-        'custom-properties': false,
-      },
-    },
-  },
-};
+// 注意：postcss.config.mjs 是实际使用的配置文件
+// postcss.config.js 已弃用，保留此注释避免混淆

@@ -226,42 +226,100 @@ export default withNextIntl({
     root: __dirname,
   },
   webpack: (config, { isServer, webpack, dev }) => {
-    // 移除所有现有 CSS 规则，由我们统一处理所有 CSS
-    // 必须这样做，因为我们使用 postcss-loader 处理 Tailwind v4 @layer 语法
-    config.module.rules = config.module.rules.filter(
-      rule => !(rule.test && typeof rule.test === 'object' && rule.test.toString().includes('\\.css$'))
-    );
+    // ── 递归删除所有 CSS-related rules（包括 oneOf 内部的）──
+    function removeCssRules(rules) {
+      return rules.filter(rule => {
+        if (rule.oneOf) {
+          rule.oneOf = removeCssRules(rule.oneOf);
+          return rule.oneOf.length > 0;
+        }
+        if (rule.test) {
+          const testStr =
+            typeof rule.test === 'object'
+              ? rule.test.toString()
+              : String(rule.test);
+          if (
+            testStr.includes('.css') ||
+            testStr.includes('.module') ||
+            testStr.includes('.scss') ||
+            testStr.includes('.sass')
+          ) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+    config.module.rules = removeCssRules(config.module.rules);
 
-    // 生产环境用 MiniCssExtractPlugin.loader 提取独立 CSS 文件，消除 FOUC
-    // 开发环境保留 style-loader 实现 HMR
+    // ── 生产环境用 MiniCssExtractPlugin.loader 提取独立 CSS 文件 ──
+    // ── 开发环境保留 style-loader 实现 HMR                       ──
     const cssLoader = dev
       ? 'style-loader'
       : MiniCssExtractPlugin.loader;
 
     if (!dev) {
-      config.plugins.push(new MiniCssExtractPlugin({
-        filename: 'static/css/[name].[contenthash:8].css',
-        chunkFilename: 'static/css/[id].[contenthash:8].css',
-      }));
+      // 避免重复创建 MiniCssExtractPlugin（Next.js 内部可能已创建）
+      const hasMCEP = config.plugins.some(
+        p => p.constructor && p.constructor.name === 'MiniCssExtractPlugin',
+      );
+      if (!hasMCEP) {
+        config.plugins.push(
+          new MiniCssExtractPlugin({
+            filename: 'static/css/[name].[contenthash:8].css',
+            chunkFilename: 'static/css/[id].[contenthash:8].css',
+          }),
+        );
+      }
     }
 
-    // 处理 @umami/react-zen 的 CSS（Tailwind v4 @layer 语法需要 postcss-loader）
+    // ── css-loader 基础选项 ──
+    // 关键：必须显式设置 namedExport: false
+    // css-loader v7 默认 namedExport = esModule = true，
+    // 但源码用 `import styles from`（需要 default export）
+    const cssLoaderBaseOptions = {
+      importLoaders: 1,
+      modules: {
+        namedExport: false,
+        exportLocalsConvention: 'asIs',
+        exportOnlyLocals: isServer,
+      },
+    };
+
+    // ── 1. 处理 .module.css（CSS Modules，需要 class name 映射）──
     config.module.rules.push({
-      test: /node_modules\/@umami\/react-zen.*\.css$/,
+      test: /\.module\.css$/,
+      exclude: /node_modules/,
       use: [
         cssLoader,
-        { loader: 'css-loader', options: { importLoaders: 1 } },
+        { loader: 'css-loader', options: cssLoaderBaseOptions },
         'postcss-loader',
       ],
     });
 
-    // 处理应用自身的 CSS（global.css 等）
+    // ── 2. 处理 @umami/react-zen 的 CSS ──
     config.module.rules.push({
-      test: /\.css$/,
-      exclude: /node_modules/,
+      test: /node_modules\/@umami\/react-zen.*\.css$/,
       use: [
         cssLoader,
-        { loader: 'css-loader', options: { importLoaders: 1 } },
+        {
+          loader: 'css-loader',
+          options: { importLoaders: 1, modules: false },
+        },
+        'postcss-loader',
+      ],
+    });
+
+    // ── 3. 处理应用自身的 global CSS（非 .module.css）──
+    config.module.rules.push({
+      test: /\.css$/,
+      exclude: [/node_modules/, /\.module\.css$/],
+      use: [
+        cssLoader,
+        {
+          loader: 'css-loader',
+          options: { importLoaders: 1, modules: false },
+        },
         'postcss-loader',
       ],
     });
