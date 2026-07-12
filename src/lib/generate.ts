@@ -1,6 +1,6 @@
 import prand from 'pure-rand';
 
-const seed = Date.now() ^ (Math.random() * 0x100000000);
+const seed = crypto.getRandomValues(new Uint32Array(1))[0] >>> 0;
 const rng = prand.xoroshiro128plus(seed);
 
 export function random(min: number, max: number) {

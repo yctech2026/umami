@@ -11,9 +11,9 @@ async function generateApiKey(): Promise<{
   keyHash: string;
   lastChars: string;
 }> {
-  const randomHex = Array.from({ length: 32 }, () =>
-    Math.floor(Math.random() * 16).toString(16),
-  ).join('');
+  const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
   const key = `uma_${randomHex}`;
   const prefix = key.slice(0, 10) + '...';
   const lastChars = key.slice(-4);

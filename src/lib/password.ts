@@ -1,3 +1,5 @@
+import { getEnv } from './env';
+
 const ITERATIONS = 10000;
 const KEY_LENGTH = 32; // 256 bits (SHA-256 output)
 const SALT_BYTES = 16; // 16 bytes = 32 hex chars
@@ -38,7 +40,7 @@ function constantTimeCompare(a: string, b: string): boolean {
  * 如果未设置，使用空字符串（降级但兼容）
  */
 function getPepper(): Uint8Array {
-  const pepper = 'umami-local-dev-pepper-key-not-for-production';
+  const pepper = getEnv('PEPPER_KEY', '');
   if (!pepper) {
     console.warn('[password] PEPPER_KEY is not set! Password pepper layer is disabled. Set via `wrangler secret put PEPPER_KEY` in production.');
   }

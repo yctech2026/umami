@@ -1,18 +1,18 @@
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { getQueryFilters, parseRequest } from '@/lib/request';
-import { json, unauthorized } from '@/lib/response';
-import { pagingParams, withDateRange } from '@/lib/schema';
+import { unauthorized } from '@/lib/response';
+import { withDateRange } from '@/lib/schema';
 import { canViewWebsite } from '@/permissions';
 import { getEventMetrics, getPageviewMetrics, getSessionMetrics } from '@/queries/sql';
+
+const EXPORT_LIMIT = 50_000;
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ websiteId: string }> },
 ) {
-  const schema = withDateRange({
-    ...pagingParams,
-  });
+  const schema = withDateRange({});
 
   const { auth, query, error } = await parseRequest(request, schema);
 
@@ -29,13 +29,13 @@ export async function GET(
   const filters = await getQueryFilters(query, websiteId);
 
   const [events, pages, referrers, browsers, os, devices, countries] = await Promise.all([
-    getEventMetrics(websiteId, { type: 'event' }, filters),
-    getPageviewMetrics(websiteId, { type: 'path' }, filters),
-    getPageviewMetrics(websiteId, { type: 'referrer' }, filters),
-    getSessionMetrics(websiteId, { type: 'browser' }, filters),
-    getSessionMetrics(websiteId, { type: 'os' }, filters),
-    getSessionMetrics(websiteId, { type: 'device' }, filters),
-    getSessionMetrics(websiteId, { type: 'country' }, filters),
+    getEventMetrics(websiteId, { type: 'event', limit: EXPORT_LIMIT }, filters),
+    getPageviewMetrics(websiteId, { type: 'path', limit: EXPORT_LIMIT }, filters),
+    getPageviewMetrics(websiteId, { type: 'referrer', limit: EXPORT_LIMIT }, filters),
+    getSessionMetrics(websiteId, { type: 'browser', limit: EXPORT_LIMIT }, filters),
+    getSessionMetrics(websiteId, { type: 'os', limit: EXPORT_LIMIT }, filters),
+    getSessionMetrics(websiteId, { type: 'device', limit: EXPORT_LIMIT }, filters),
+    getSessionMetrics(websiteId, { type: 'country', limit: EXPORT_LIMIT }, filters),
   ]);
 
   const zip = new JSZip();
@@ -56,11 +56,12 @@ export async function GET(
   zip.file('countries.csv', parse(countries));
 
   const content = await zip.generateAsync({ type: 'uint8array' });
-  let binary = '';
-  for (let i = 0; i < content.length; i++) {
-    binary += String.fromCharCode(content[i]);
-  }
-  const base64 = btoa(binary);
 
-  return json({ zip: base64 });
+  return new Response(content, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="export.zip"',
+      'Content-Length': content.length.toString(),
+    },
+  });
 }
