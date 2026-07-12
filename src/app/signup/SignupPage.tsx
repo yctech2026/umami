@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLoginQuery } from '@/components/hooks';
 import { Logo } from '@/components/svg';
-import { LoginForm } from './LoginForm';
+import { SignupForm } from './SignupForm';
 
-export function LoginPage() {
+export function SignupPage() {
   const { user, isLoading } = useLoginQuery();
   const router = useRouter();
 
@@ -50,16 +50,16 @@ export function LoginPage() {
                 </Text>
               </Row>
             </Link>
-            <Link href="/signup" style={{ textDecoration: 'none' }}>
+            <Link href="/login" style={{ textDecoration: 'none' }}>
               <Button variant="default" size="md">
-                Sign up
+                Log in
               </Button>
             </Link>
           </Row>
 
           {/* Main content */}
           <Column flexGrow={1} alignItems="center" style={{ paddingTop: '7rem' }}>
-            <LoginForm />
+            <SignupForm />
           </Column>
 
           {/* Footer */}

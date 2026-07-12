@@ -5,16 +5,17 @@ import { useMessages, useUpdateQuery } from '@/components/hooks';
 import { setClientAuthToken } from '@/lib/client';
 import { setUser } from '@/store/app';
 
-export function LoginForm() {
+export function SignupForm() {
   const { t, labels, getErrorMessage } = useMessages();
   const router = useRouter();
-  const { mutateAsync, error } = useUpdateQuery('/auth/login');
+  const { mutateAsync, error } = useUpdateQuery('/auth/register');
 
   const handleSubmit = async (data: any) => {
-    // Map email -> username for API compatibility
+    // Map form fields to API fields
     const payload = {
-      username: data.email,
+      username: data.email,     // email → username for login
       password: data.password,
+      name: data.name,          // name → displayName for profile
     };
     await mutateAsync(payload, {
       onSuccess: async ({ token, user }) => {
@@ -31,7 +32,7 @@ export function LoginForm() {
   return (
     <Column gap="6" alignItems="center">
       <Heading as="h2" weight="semibold" align="center" size="2xl">
-        Log in
+        Sign up
       </Heading>
 
       <Form
@@ -47,45 +48,53 @@ export function LoginForm() {
         </div>
 
         <FormField
-          label="Email Address"
-          data-test="input-email"
+          label="Name"
+          name="name"
+          rules={{ required: t(labels.required) }}
+        >
+          <TextField autoComplete="name" />
+        </FormField>
+        <FormField
+          label="Email address"
           name="email"
           rules={{ required: t(labels.required) }}
         >
-          <TextField autoComplete="username" />
+          <TextField autoComplete="email" />
         </FormField>
         <FormField
           label={t(labels.password)}
-          data-test="input-password"
           name="password"
           rules={{ required: t(labels.required) }}
         >
-          <PasswordField autoComplete="current-password" />
+          <PasswordField autoComplete="new-password" />
         </FormField>
         <FormButtons style={{ paddingTop: '0.75rem' }}>
           <FormSubmitButton
-            data-test="button-submit"
             variant="primary"
             style={{ flex: 1 }}
             isDisabled={false}
           >
-            Log in
+            Sign up
           </FormSubmitButton>
         </FormButtons>
       </Form>
 
       <Column gap="0" alignItems="center">
         <Row gap="1">
-          <Text size="base">Don&apos;t have an account?</Text>
-          <Link href="/signup" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
+          <Text size="base">Already have an account?</Text>
+          <Link href="/login" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
             <Text weight="bold" size="base">
-              Sign up
+              Log in
             </Text>
           </Link>
         </Row>
-        <Link href="/forgot-password" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
+        <Link
+          href="https://umami.is/docs/self-host"
+          target="_blank"
+          style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
+        >
           <Text weight="bold" size="base">
-            Forgot password?
+            Looking to self-host? See docs
           </Text>
         </Link>
       </Column>

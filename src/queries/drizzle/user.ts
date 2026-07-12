@@ -124,17 +124,24 @@ export async function createUser(data: {
   username: string;
   password: string;
   role: Role;
+  displayName?: string;
 }) {
   const db = prisma.client;
 
+  const values: any = {
+    userId: data.id,
+    username: data.username,
+    password: data.password,
+    role: data.role,
+  };
+
+  if (data.displayName) {
+    values.displayName = data.displayName;
+  }
+
   return db
     .insert(schema.user)
-    .values({
-      userId: data.id,
-      username: data.username,
-      password: data.password,
-      role: data.role,
-    })
+    .values(values)
     .returning({
       id: schema.user.userId,
       username: schema.user.username,

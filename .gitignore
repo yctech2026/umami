@@ -59,4 +59,12 @@ wrangler.jsonc
 # Drizzle
 drizzle/migrations/
 drizzle/meta/
+drizzle/dev.db
 .wrangler/
+
+# Test results
+test-results/
+
+# Backup files
+*.bak
+*.bak2

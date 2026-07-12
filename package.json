@@ -117,6 +117,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.10",
     "@opennextjs/cloudflare": "^1.15.0",
+    "@playwright/test": "1.60.0",
     "@rollup/plugin-alias": "^5.0.0",
     "@rollup/plugin-commonjs": "^25.0.4",
     "@rollup/plugin-json": "^6.0.0",
