@@ -2,6 +2,7 @@ import path from 'path';
 import createNextIntlPlugin from 'next-intl/plugin';
 import pkg from './package.json' with { type: 'json' };
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -224,30 +225,42 @@ export default withNextIntl({
   turbopack: {
     root: __dirname,
   },
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer, webpack, dev }) => {
     // 移除所有现有 CSS 规则，由我们统一处理所有 CSS
     // 必须这样做，因为我们使用 postcss-loader 处理 Tailwind v4 @layer 语法
     config.module.rules = config.module.rules.filter(
       rule => !(rule.test && typeof rule.test === 'object' && rule.test.toString().includes('\\.css$'))
     );
 
+    // 生产环境用 MiniCssExtractPlugin.loader 提取独立 CSS 文件，消除 FOUC
+    // 开发环境保留 style-loader 实现 HMR
+    const cssLoader = dev
+      ? 'style-loader'
+      : MiniCssExtractPlugin.loader;
+
+    if (!dev) {
+      config.plugins.push(new MiniCssExtractPlugin({
+        filename: 'static/css/[name].[contenthash:8].css',
+        chunkFilename: 'static/css/[id].[contenthash:8].css',
+      }));
+    }
+
     // 处理 @umami/react-zen 的 CSS（Tailwind v4 @layer 语法需要 postcss-loader）
     config.module.rules.push({
       test: /node_modules\/@umami\/react-zen.*\.css$/,
       use: [
-        'style-loader',
+        cssLoader,
         { loader: 'css-loader', options: { importLoaders: 1 } },
         'postcss-loader',
       ],
     });
-
 
     // 处理应用自身的 CSS（global.css 等）
     config.module.rules.push({
       test: /\.css$/,
       exclude: /node_modules/,
       use: [
-        'style-loader',
+        cssLoader,
         { loader: 'css-loader', options: { importLoaders: 1 } },
         'postcss-loader',
       ],
