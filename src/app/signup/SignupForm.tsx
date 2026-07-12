@@ -79,9 +79,9 @@ export function SignupForm() {
         </FormButtons>
       </Form>
 
-      <Column gap="0" alignItems="center">
+      <Column gap="3" alignItems="center">
         <Row gap="1">
-          <Text size="base">Already have an account?</Text>
+          <Text size="base" style={{ color: '#111827' }}>Already have an account?</Text>
           <Link href="/login" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
             <Text weight="bold" size="base">
               Log in
