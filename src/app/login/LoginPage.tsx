@@ -1,5 +1,5 @@
 'use client';
-import { Box, Button, Column, Icon, Loading, Row, Text } from '@umami/react-zen';
+import { Box, Button, Column, Icon, Row, Text } from '@umami/react-zen';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -8,7 +8,7 @@ import { Logo } from '@/components/svg';
 import { LoginForm } from './LoginForm';
 
 export function LoginPage() {
-  const { user, isLoading } = useLoginQuery();
+  const { user } = useLoginQuery();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,10 +16,6 @@ export function LoginPage() {
       router.replace('/');
     }
   }, [user, router]);
-
-  if (isLoading || user) {
-    return <Loading placement="absolute" />;
-  }
 
   return (
     <>
