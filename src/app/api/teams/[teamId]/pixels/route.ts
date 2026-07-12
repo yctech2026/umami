@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
 
   const filters = await getQueryFilters(query);
 
-  const websites = await getTeamPixels(teamId, filters);
+  const pixels = await getTeamPixels(teamId, filters);
 
-  return json(websites);
+  return json(pixels);
 }

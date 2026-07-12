@@ -3,6 +3,8 @@ import { parseRequest } from '@/lib/request';
 import { CURRENT_VERSION } from '@/lib/constants';
 import { json } from '@/lib/response';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { error } = await parseRequest(request, null, { skipAuth: true });
 
