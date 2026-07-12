@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Column,
+  DataColumn,
+  DataTable,
   Dialog,
   DialogTrigger,
   Form,
@@ -17,53 +19,73 @@ import {
   TextField,
   useToast,
 } from '@umami/react-zen';
-import { X, Plus, Copy, Key, Eye, EyeOff } from '@/components/icons';
+import { Key, Plus, Trash, Eye, EyeOff, Copy } from '@/components/icons';
+import { useApi, useMobile } from '@/components/hooks';
+import { ConfirmationForm } from '@/components/common/ConfirmationForm';
+import { Empty } from '@/components/common/Empty';
+import { LoadingPanel } from '@/components/common/LoadingPanel';
+
+interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  lastChars: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 export function ApiKeysSettings() {
-  const [keys, setKeys] = useState<any[]>([]);
+  const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newKey, setNewKey] = useState<any>(null);
+  const [newKey, setNewKey] = useState<{ id: string; key: string } | null>(null);
   const [showKey, setShowKey] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const { get, post, del } = useApi();
   const { toast } = useToast();
+  const { isMobile } = useMobile();
 
-  const loadKeys = async () => {
+  const loadKeys = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/keys');
-      const data = await res.json();
-      setKeys(data);
+      const data = await get('/keys');
+      setKeys(data || []);
     } catch (err) {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [get]);
 
   useEffect(() => {
     loadKeys();
-  }, []);
+  }, [loadKeys]);
 
-  const handleCreate = async (data: any) => {
-    const res = await fetch('/api/keys', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-
-    if (res.ok) {
-      const key = await res.json();
-      setNewKey(key);
+  const handleCreate = async (data: any, close: () => void) => {
+    try {
+      const key = await post('/keys', data);
+      setNewKey({ id: key.id, key: key.key });
+      toast('API key created');
       loadKeys();
+      close();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this API key?')) {
-      return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await del(`/keys/${deleteId}`);
+      toast('API key deleted');
+      setDeleteId(null);
+      loadKeys();
+    } catch (err) {
+      console.error(err);
     }
-
-    await fetch(`/api/keys/${id}`, { method: 'DELETE' });
-    toast('API key deleted');
-    loadKeys();
+    setDeleting(false);
   };
 
   const copyToClipboard = (text: string) => {
@@ -73,7 +95,8 @@ export function ApiKeysSettings() {
 
   return (
     <Column gap="6">
-      <Row justifyContent="space-between" alignItems="center">
+      {/* Header */}
+      <Row justifyContent="space-between" alignItems="center" wrap="wrap" gap>
         <Heading as="h2" size="2xl" weight="semibold">
           API Keys
         </Heading>
@@ -86,11 +109,10 @@ export function ApiKeysSettings() {
           </Button>
           <Modal>
             <Dialog title="Create API key" style={{ width: 400 }}>
-              {({ close }) => (
+              {({ close }: any) => (
                 <Form
-                  onSubmit={async (data: any) => {
-                    await handleCreate(data);
-                    close();
+                  onSubmit={(data: any) => {
+                    handleCreate(data, close);
                   }}
                 >
                   <FormField
@@ -111,18 +133,18 @@ export function ApiKeysSettings() {
         </DialogTrigger>
       </Row>
 
+      {/* Description */}
       <Text size="sm" color="muted">
         API keys allow you to access the Umami API. Each key inherits your user permissions.
       </Text>
 
+      {/* Newly created key banner */}
       {newKey && (
         <Column
           gap="3"
-          style={{
-            background: 'var(--color-surface-sunken)',
-            padding: '1rem',
-            borderRadius: '8px',
-          }}
+          backgroundColor="surface-sunken"
+          padding="4"
+          borderRadius
         >
           <Row gap="2" alignItems="center">
             <Icon size="md">
@@ -136,15 +158,18 @@ export function ApiKeysSettings() {
           <Row
             gap="2"
             alignItems="center"
-            style={{
-              background: 'var(--color-surface)',
-              padding: '0.75rem',
-              borderRadius: '4px',
-              fontFamily: 'monospace',
-              fontSize: '0.875rem',
-            }}
+            backgroundColor="surface-base"
+            padding="3"
+            borderRadius
           >
-            <Text style={{ flex: 1, wordBreak: 'break-all' }}>
+            <Text
+              style={{
+                flex: 1,
+                wordBreak: 'break-all',
+                fontFamily: 'monospace',
+                fontSize: '0.875rem',
+              }}
+            >
               {showKey ? newKey.key : '••••••••••••••••••••••••••••••••••••'}
             </Text>
             <Button variant="quiet" onPress={() => setShowKey(!showKey)}>
@@ -162,60 +187,84 @@ export function ApiKeysSettings() {
         </Column>
       )}
 
-      {loading ? (
-        <Text>Loading...</Text>
-      ) : keys.length === 0 ? (
-        <Column alignItems="center" gap="3" style={{ padding: '3rem 0' }}>
-          <Icon size="xl">
-            <Key />
-          </Icon>
-          <Text size="lg" weight="semibold">
-            No API keys
-          </Text>
-          <Text size="sm" color="muted">
-            Create your first API key to get started.
-          </Text>
-        </Column>
-      ) : (
-        <Column gap="3">
-          {keys.map((key: any) => (
-            <Row
-              key={key.id}
-              justifyContent="space-between"
-              alignItems="center"
-              style={{
-                padding: '0.75rem 1rem',
-                border: '1px solid var(--color-border)',
-                borderRadius: '8px',
-              }}
-            >
-              <Column gap="1">
-                <Text weight="bold">{key.name}</Text>
-                <Row gap="2" alignItems="center">
-                  <Text
-                    size="sm"
-                    style={{
-                      fontFamily: 'monospace',
-                      color: 'var(--color-muted)',
-                    }}
-                  >
-                    {key.prefix}
-                    {key.lastChars}
-                  </Text>
-                  <Text size="sm" color="muted">
-                    Created {new Date(key.createdAt).toLocaleDateString()}
-                  </Text>
-                </Row>
-              </Column>
-              <Button variant="quiet" onPress={() => handleDelete(key.id)}>
-                <Icon size="sm">
-                  <X />
-                </Icon>
-              </Button>
-            </Row>
-          ))}
-        </Column>
-      )}
+      {/* Key list */}
+      <LoadingPanel
+        data={keys}
+        isLoading={loading}
+        isEmpty={!loading && keys.length === 0}
+        renderEmpty={() => (
+          <Column alignItems="center" gap="3" paddingY="12">
+            <Icon size="xl">
+              <Key />
+            </Icon>
+            <Text size="lg" weight="semibold">
+              No API keys
+            </Text>
+            <Text size="sm" color="muted">
+              Create your first API key to get started.
+            </Text>
+          </Column>
+        )}
+      >
+        <DataTable data={keys} displayMode={isMobile ? 'cards' : undefined}>
+          <DataColumn id="name" label="Name">
+            {(row: ApiKey) => <Text weight="bold">{row.name}</Text>}
+          </DataColumn>
+          <DataColumn id="key" label="Key">
+            {(row: ApiKey) => (
+              <Row gap="2" alignItems="center">
+                <Text
+                  size="sm"
+                  style={{ fontFamily: 'monospace' }}
+                  color="muted"
+                >
+                  {row.prefix}
+                  {row.lastChars}
+                </Text>
+              </Row>
+            )}
+          </DataColumn>
+          <DataColumn id="created" label="Created" width="160px">
+            {(row: ApiKey) => (
+              <Text size="sm" color="muted">
+                {new Date(row.createdAt).toLocaleDateString()}
+              </Text>
+            )}
+          </DataColumn>
+          <DataColumn id="action" align="end" width="80px">
+            {(row: ApiKey) => (
+              <Row gap="1">
+                <Button
+                  variant="quiet"
+                  aria-label="Delete"
+                  onPress={() => {
+                    setDeleteId(row.id);
+                    setDeleteName(row.name);
+                  }}
+                >
+                  <Icon size="sm">
+                    <Trash />
+                  </Icon>
+                </Button>
+              </Row>
+            )}
+          </DataColumn>
+        </DataTable>
+      </LoadingPanel>
+
+      {/* Delete confirmation dialog */}
+      <Modal isOpen={!!deleteId}>
+        <Dialog style={{ width: 400 }}>
+          <ConfirmationForm
+            message={`Are you sure you want to delete the API key "${deleteName}"?`}
+            isLoading={deleting}
+            onConfirm={handleDelete}
+            onClose={() => setDeleteId(null)}
+            buttonLabel="Delete"
+            buttonVariant="danger"
+          />
+        </Dialog>
+      </Modal>
     </Column>
   );
 }
