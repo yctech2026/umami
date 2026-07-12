@@ -8,4 +8,5 @@ export * from './share';
 export * from './team';
 export * from './teamUser';
 export * from './user';
+export * from './apiKey';
 export * from './website';

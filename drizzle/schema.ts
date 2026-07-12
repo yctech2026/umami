@@ -362,3 +362,24 @@ export const sessionReplaySaved = sqliteTable('session_replay_saved', {
   index('session_replay_saved_visit_id_idx').on(table.visitId),
   index('session_replay_saved_website_id_created_at_idx').on(table.websiteId, table.createdAt),
 ]);
+
+// ---------------------------------------------------------------------------
+// ApiKey
+// ---------------------------------------------------------------------------
+export const apiKey = sqliteTable('api_key', {
+  apiKeyId: text('api_key_id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.userId),
+  name: text('name').notNull(),
+  prefix: text('prefix').notNull(),
+  keyHash: text('key_hash').notNull(),
+  lastChars: text('last_chars').notNull(),
+  role: text('role', { enum: ['admin', 'user', 'view-only'] }).notNull().$default(() => 'user'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().$default(() => true),
+  expiresAt: text('expires_at'),
+  createdAt: text('created_at').$defaultFn(() => sql`(datetime('now'))`),
+  updatedAt: text('updated_at').$defaultFn(() => sql`(datetime('now'))`),
+  deletedAt: text('deleted_at'),
+}, (table) => [
+  index('api_key_user_id_idx').on(table.userId),
+  index('api_key_prefix_idx').on(table.prefix),
+]);

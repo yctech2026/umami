@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "umami" generated at 2026-07-11T21:51:11.195Z.

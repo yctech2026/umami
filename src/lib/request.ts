@@ -1,13 +1,16 @@
 import { startOfMonth, subMonths } from 'date-fns';
 import { z } from 'zod';
 import { checkAuth } from '@/lib/auth';
-import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS } from '@/lib/constants';
+import { hash } from '@/lib/crypto';
+import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS, SECRET_SALT } from '@/lib/constants';
 import { getAllowedUnits, getMinimumUnit, maxDate, parseDateRange } from '@/lib/date';
 import { fetchAccount, fetchWebsite } from '@/lib/load';
 import { filtersArrayToObject } from '@/lib/params';
 import { badRequest, unauthorized } from '@/lib/response';
 import type { QueryFilters } from '@/lib/types';
 import { getWebsiteSegment } from '@/queries/drizzle';
+import { getApiKey } from '@/queries/drizzle/apiKey';
+import { getUser } from '@/queries/drizzle/user';
 import { getEnvBool } from '@/lib/env';
 
 export async function parseRequest(
@@ -46,7 +49,29 @@ export async function parseRequest(
     auth = await checkAuth(request);
 
     if (!auth) {
-      error = () => unauthorized();
+      // Fall back to API key authentication
+      const apiKeyHeader = request.headers.get('x-umami-api-key');
+
+      if (apiKeyHeader) {
+        const keyHash = await hash(apiKeyHeader, SECRET_SALT);
+        const keyData = await getApiKey(keyHash);
+
+        if (keyData) {
+          const user = await getUser(keyData.userId);
+
+          if (user) {
+            auth = {
+              user,
+              token: { apiKeyId: keyData.apiKeyId },
+              shareToken: null,
+            };
+          }
+        }
+      }
+
+      if (!auth) {
+        error = () => unauthorized();
+      }
     }
   }
 
