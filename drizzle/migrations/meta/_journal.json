@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1781088797569,
+      "tag": "0000_cloudy_obadiah_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783819315438,
+      "tag": "0001_fair_pepper_potts",
+      "breakpoints": true
+    }
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784000000000,
+      "tag": "0002_nosy_thing",
+      "breakpoints": true
+    }
+  ]
+}

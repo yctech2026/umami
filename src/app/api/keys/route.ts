@@ -36,6 +36,7 @@ export async function GET(request: Request) {
       name: k.name,
       prefix: k.prefix,
       lastChars: k.lastChars,
+      keyValue: k.keyValue,
       role: k.role,
       isActive: k.isActive,
       createdAt: k.createdAt,
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
     prefix,
     keyHash,
     lastChars,
+    keyValue: key,
     role: auth.user.role,
   });
 

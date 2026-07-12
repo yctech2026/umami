@@ -373,6 +373,7 @@ export const apiKey = sqliteTable('api_key', {
   prefix: text('prefix').notNull(),
   keyHash: text('key_hash').notNull(),
   lastChars: text('last_chars').notNull(),
+  keyValue: text('key_value'),
   role: text('role', { enum: ['admin', 'user', 'view-only'] }).notNull().$default(() => 'user'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().$default(() => true),
   expiresAt: text('expires_at'),

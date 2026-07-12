@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Column,
@@ -30,6 +30,7 @@ interface ApiKey {
   name: string;
   prefix: string;
   lastChars: string;
+  keyValue?: string;
   role: string;
   isActive: boolean;
   createdAt: string;
@@ -40,6 +41,7 @@ export function ApiKeysSettings() {
   const [loading, setLoading] = useState(true);
   const [newKey, setNewKey] = useState<{ id: string; key: string } | null>(null);
   const [showKey, setShowKey] = useState(true);
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -153,7 +155,7 @@ export function ApiKeysSettings() {
             <Text weight="bold">Key created</Text>
           </Row>
           <Text size="sm" color="muted">
-            Copy this key now. You won&apos;t be able to see it again.
+            Copy this key now. You can also view it later from the list.
           </Text>
           <Row
             gap="2"
@@ -211,18 +213,55 @@ export function ApiKeysSettings() {
             {(row: ApiKey) => <Text weight="bold">{row.name}</Text>}
           </DataColumn>
           <DataColumn id="key" label="Key">
-            {(row: ApiKey) => (
-              <Row gap="2" alignItems="center">
-                <Text
-                  size="sm"
-                  style={{ fontFamily: 'monospace' }}
-                  color="muted"
-                >
-                  {row.prefix}
-                  {row.lastChars}
-                </Text>
-              </Row>
-            )}
+            {(row: ApiKey) => {
+              const isRevealed = revealedKeys.has(row.id);
+              const canReveal = !!row.keyValue;
+
+              return (
+                <Row gap="2" alignItems="center">
+                  {isRevealed && canReveal ? (
+                    <Text
+                      size="sm"
+                      style={{
+                        fontFamily: 'monospace',
+                        wordBreak: 'break-all',
+                        flex: 1,
+                      }}
+                    >
+                      {row.keyValue}
+                    </Text>
+                  ) : (
+                    <Text
+                      size="sm"
+                      style={{ fontFamily: 'monospace' }}
+                      color="muted"
+                    >
+                      {row.prefix}
+                      {row.lastChars}
+                    </Text>
+                  )}
+                  {canReveal && (
+                    <Button
+                      variant="quiet"
+                      aria-label={isRevealed ? 'Hide' : 'Reveal'}
+                      onPress={() => {
+                        const next = new Set(revealedKeys);
+                        if (isRevealed) {
+                          next.delete(row.id);
+                        } else {
+                          next.add(row.id);
+                        }
+                        setRevealedKeys(next);
+                      }}
+                    >
+                      <Icon size="sm">
+                        {isRevealed ? <EyeOff /> : <Eye />}
+                      </Icon>
+                    </Button>
+                  )}
+                </Row>
+              );
+            }}
           </DataColumn>
           <DataColumn id="created" label="Created" width="160px">
             {(row: ApiKey) => (
@@ -231,23 +270,43 @@ export function ApiKeysSettings() {
               </Text>
             )}
           </DataColumn>
-          <DataColumn id="action" align="end" width="80px">
-            {(row: ApiKey) => (
-              <Row gap="1">
-                <Button
-                  variant="quiet"
-                  aria-label="Delete"
-                  onPress={() => {
-                    setDeleteId(row.id);
-                    setDeleteName(row.name);
-                  }}
-                >
-                  <Icon size="sm">
-                    <Trash />
-                  </Icon>
-                </Button>
-              </Row>
-            )}
+          <DataColumn id="action" align="end" width="120px">
+            {(row: ApiKey) => {
+              const isRevealed = revealedKeys.has(row.id);
+              const canReveal = !!row.keyValue;
+              return (
+                <Row gap="1">
+                  {canReveal && isRevealed && (
+                    <Button
+                      variant="quiet"
+                      aria-label="Copy"
+                      onPress={() => {
+                        if (row.keyValue) {
+                          navigator.clipboard.writeText(row.keyValue);
+                          toast('Copied to clipboard');
+                        }
+                      }}
+                    >
+                      <Icon size="sm">
+                        <Copy />
+                      </Icon>
+                    </Button>
+                  )}
+                  <Button
+                    variant="quiet"
+                    aria-label="Delete"
+                    onPress={() => {
+                      setDeleteId(row.id);
+                      setDeleteName(row.name);
+                    }}
+                  >
+                    <Icon size="sm">
+                      <Trash />
+                    </Icon>
+                  </Button>
+                </Row>
+              );
+            }}
           </DataColumn>
         </DataTable>
       </LoadingPanel>
