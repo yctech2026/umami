@@ -35,7 +35,7 @@ export function App({ children }) {
     return <Loading placement="absolute" />;
   }
 
-  if (error) {
+  if (error && !user) {
     window.location.href = config.cloudMode
       ? `${process.env.cloudUrl}/login`
       : `${process.env.basePath || ''}/login`;

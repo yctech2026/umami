@@ -2,12 +2,14 @@ import { Column, Form, FormButtons, FormField, FormSubmitButton, Heading, Passwo
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMessages, useUpdateQuery } from '@/components/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import { setClientAuthToken } from '@/lib/client';
 import { setUser } from '@/store/app';
 
 export function SignupForm() {
   const { t, labels, getErrorMessage } = useMessages();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { mutateAsync, error } = useUpdateQuery('/auth/register');
 
   const handleSubmit = async (data: any) => {
@@ -21,6 +23,7 @@ export function SignupForm() {
       onSuccess: async ({ token, user }) => {
         setClientAuthToken(token);
         setUser(user);
+        queryClient.removeQueries({ queryKey: ['login'] });
         router.push('/');
       },
       onError: (err) => {
