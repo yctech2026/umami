@@ -2,6 +2,7 @@ import { Icon, LoadingButton, Tooltip, TooltipTrigger } from '@umami/react-zen';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useMessages } from '@/components/hooks';
+import { getClientAuthToken } from '@/lib/client';
 import { useDateParameters } from '@/components/hooks/useDateParameters';
 import { useFilterParameters } from '@/components/hooks/useFilterParameters';
 import { Download } from '@/components/icons';
@@ -21,7 +22,11 @@ export function ExportButton({ websiteId }: { websiteId: string }) {
       ...Object.fromEntries(searchParams.entries()),
     });
 
-    const response = await fetch(`/api/websites/${websiteId}/export?${params}`);
+    const response = await fetch(`/api/websites/${websiteId}/export?${params}`, {
+      headers: {
+        Authorization: `Bearer ${getClientAuthToken()}`,
+      },
+    });
 
     if (!response.ok) {
       setIsLoading(false);

@@ -136,14 +136,18 @@ function wrapD1WithRetry(db: any): any {
     return RETRYABLE_ERRORS.some(pattern => msg.includes(pattern));
   }
 
-  async function withRetry(fn: () => Promise<any>, retries = 2): Promise<any> {
+  async function withRetry(fn: () => Promise<any>, retries = 5): Promise<any> {
     for (let i = 0; i <= retries; i++) {
       try {
         return await fn();
       } catch (err) {
         if (i === retries || !isRetryable(err)) throw err;
-        const delay = 50 * Math.pow(2, i);
-        console.log(`[drizzle] D1 transient error, retry ${i + 1}/${retries} after ${delay}ms:`, String(err.message || err).slice(0, 100));
+        // 指数退避 + jitter: 200ms, 400ms, 800ms, 1600ms, 3200ms (最大 ~6.2s)
+        const baseDelay = 200 * Math.pow(2, i);
+        const jitter = Math.random() * 200; // 0-200ms 随机抖动，防止羊群效应
+        const delay = Math.min(baseDelay + jitter, 5000); // 上限 5s
+        const errMsg = err instanceof Error ? err.message : String(err ?? '');
+        console.log(`[drizzle] D1 transient error, retry ${i + 1}/${retries} after ${delay}ms:`, errMsg.slice(0, 100));
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
