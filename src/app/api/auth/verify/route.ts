@@ -4,6 +4,10 @@ import { parseRequest } from '@/lib/request';
 import { json } from '@/lib/response';
 import { getAllUserTeams } from '@/queries/drizzle';
 
+export async function GET(request: Request) {
+  return POST(request);
+}
+
 export async function POST(request: Request) {
   const { auth, error } = await parseRequest(request);
 
