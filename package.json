@@ -54,7 +54,8 @@
     "check": "biome check --write",
     "build-open": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "opennextjs-cloudflare build && WRANGLER_BUILD_PLATFORM=node WRANGLER_BUILD_CONDITIONS='' npx wrangler deploy --minify",
+    "deploy:opennext": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "pnpm": {

@@ -202,7 +202,22 @@ export default withNextIntl({
   basePath,
   output: isProd ? 'standalone' : undefined,
   transpilePackages: ['@umami/react-zen'],
-  serverExternalPackages: ['@libsql/client', '@libsql/isomorphic-ws'],
+  serverExternalPackages: [
+    '@libsql/client',
+    '@libsql/isomorphic-ws',
+    // 以下为构建时依赖，不会被 Worker 运行时调用
+    'babel-plugin-react-compiler',
+    'webpack',
+    'terser',
+    'svgo',
+    'csso',
+    'css-tree',
+    'postcss-calc',
+    'postcss',
+    'acorn',
+    'jsonwebtoken',
+    'next/dist/compiled/next-server',
+  ],
   experimental: {
     serverMinification: true,
     optimizePackageImports: [
@@ -222,9 +237,7 @@ export default withNextIntl({
   images: {
     unoptimized: true, // Cloudflare Workers 不支持图片优化
   },
-  turbopack: {
-    root: __dirname,
-  },
+  turbopack: {},
   webpack: (config, { isServer, webpack, dev }) => {
     // ── 递归删除所有 CSS-related rules（包括 oneOf 内部的）──
     function removeCssRules(rules) {
