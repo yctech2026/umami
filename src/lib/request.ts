@@ -61,7 +61,7 @@ export async function parseRequest(
 
           if (user) {
             auth = {
-              user,
+              user: { ...user, isAdmin: user.role === 'admin' },
               token: { apiKeyId: keyData.apiKeyId },
               shareToken: null,
             };
