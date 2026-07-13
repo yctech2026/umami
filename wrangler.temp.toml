@@ -1,0 +1,7 @@
+name = "umami-hash-gen"
+main = "gen-hash-worker.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PEPPER_KEY = "umami-local-dev-pepper-key-not-for-production"

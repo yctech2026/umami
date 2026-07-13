@@ -380,6 +380,16 @@ export const labels: Record<string, string> = {
   duration: 'label.duration',
   recorded: 'label.recorded',
   upgrade: 'label.upgrade',
+  dontHaveAccount: 'label.dont-have-account',
+  alreadyHaveAccount: 'label.already-have-account',
+  forgotPassword: 'label.forgot-password',
+  signup: 'label.signup',
+  sendResetLink: 'label.send-reset-link',
+  backToLogin: 'label.back-to-login',
+  rememberPassword: 'label.remember-password',
+  appName: 'label.app-name',
+  selfHostDocs: 'label.self-host-docs',
+  resetPasswordDescription: 'label.reset-password-description',
 };
 
 export const messages: Record<string, string> = {

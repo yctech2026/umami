@@ -34,7 +34,7 @@ export function LoginForm() {
   return (
     <Column gap="6" alignItems="center">
       <Heading as="h2" weight="semibold" align="center" size="2xl">
-        Log in
+        {t('label.login')}
       </Heading>
 
       <Form
@@ -44,13 +44,13 @@ export function LoginForm() {
       >
         {/* Anti-bot honeypot field (hidden) */}
         <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
-          <FormField label="Confirm password" name="confirm_password">
+          <FormField label={t(labels.confirmPassword)} name="confirm_password">
             <TextField autoComplete="off" />
           </FormField>
         </div>
 
         <FormField
-          label="Email Address"
+          label={t('label.email')}
           data-test="input-email"
           name="email"
           rules={{ required: t(labels.required) }}
@@ -72,23 +72,23 @@ export function LoginForm() {
             style={{ flex: 1 }}
             isDisabled={false}
           >
-            Log in
+            {t('label.login')}
           </FormSubmitButton>
         </FormButtons>
       </Form>
 
       <Column gap="3" alignItems="center">
         <Row gap="1">
-          <Text size="base" style={{ color: '#111827' }}>Don&apos;t have an account?</Text>
+          <Text size="base" style={{ color: '#111827' }}>{t(labels.dontHaveAccount)}</Text>
           <Link href="/signup" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
             <Text weight="bold" size="base">
-              Sign up
+              {t('label.signup')}
             </Text>
           </Link>
         </Row>
         <Link href="/forgot-password" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
           <Text weight="bold" size="base">
-            Forgot password?
+            {t(labels.forgotPassword)}
           </Text>
         </Link>
       </Column>

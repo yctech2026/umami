@@ -3,12 +3,13 @@ import { Box, Button, Column, Icon, Row, Text } from '@umami/react-zen';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useLoginQuery } from '@/components/hooks';
+import { useLoginQuery, useMessages } from '@/components/hooks';
 import { Logo } from '@/components/svg';
 import { LoginForm } from './LoginForm';
 
 export function LoginPage() {
   const { user } = useLoginQuery();
+  const { t, labels } = useMessages();
   const router = useRouter();
 
   useEffect(() => {
@@ -42,13 +43,13 @@ export function LoginPage() {
                   <Logo />
                 </Icon>
                 <Text weight="bold" size="base">
-                  Umami Cloud
+                  {t(labels.appName)}
                 </Text>
               </Row>
             </Link>
             <Link href="/signup" style={{ textDecoration: 'none' }}>
               <Button variant="default" size="md">
-                Sign up
+                {t('label.signup')}
               </Button>
             </Link>
           </Row>

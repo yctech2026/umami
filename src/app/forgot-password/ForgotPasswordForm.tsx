@@ -35,22 +35,20 @@ export function ForgotPasswordForm() {
         <Icon size="lg">
           <Logo />
         </Icon>
-        <Heading>umami</Heading>
+        <Heading>{t(labels.appName)}</Heading>
         <Column
           style={{ minWidth: 300, textAlign: 'center' }}
           gap="4"
           alignItems="center"
         >
           <Text>
-            If that user exists, a password reset link has been sent. In
-            self-hosted mode, please contact your administrator to reset the
-            password.
+            {t(labels.resetPasswordDescription)}
           </Text>
           <Link
             href="/login"
             style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
           >
-            Back to login
+            {t(labels.backToLogin)}
           </Link>
         </Column>
       </Column>
@@ -62,7 +60,7 @@ export function ForgotPasswordForm() {
       <Icon size="lg">
         <Logo />
       </Icon>
-      <Heading>umami</Heading>
+      <Heading>{t(labels.appName)}</Heading>
       <Form
         onSubmit={handleSubmit}
         error={getErrorMessage(error)}
@@ -81,17 +79,17 @@ export function ForgotPasswordForm() {
             style={{ flex: 1 }}
             isDisabled={isPending}
           >
-            Send reset link
+            {t(labels.sendResetLink)}
           </FormSubmitButton>
         </FormButtons>
       </Form>
       <Text size="sm" color="muted">
-        Remember your password?{' '}
+        {t(labels.rememberPassword)}{' '}
         <Link
           href="/login"
           style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
         >
-          Log in
+          {t(labels.login)}
         </Link>
       </Text>
     </Column>

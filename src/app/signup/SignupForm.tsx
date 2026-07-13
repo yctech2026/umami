@@ -35,7 +35,7 @@ export function SignupForm() {
   return (
     <Column gap="6" alignItems="center">
       <Heading as="h2" weight="semibold" align="center" size="2xl">
-        Sign up
+        {t(labels.signup)}
       </Heading>
 
       <Form
@@ -45,20 +45,20 @@ export function SignupForm() {
       >
         {/* Anti-bot honeypot field (hidden) */}
         <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
-          <FormField label="Confirm password" name="confirm_password">
+          <FormField label={t(labels.confirmPassword)} name="confirm_password">
             <TextField autoComplete="off" />
           </FormField>
         </div>
 
         <FormField
-          label="Name"
+          label={t(labels.name)}
           name="name"
           rules={{ required: t(labels.required) }}
         >
           <TextField autoComplete="name" />
         </FormField>
         <FormField
-          label="Email address"
+          label={t(labels.email)}
           name="email"
           rules={{ required: t(labels.required) }}
         >
@@ -77,17 +77,17 @@ export function SignupForm() {
             style={{ flex: 1 }}
             isDisabled={false}
           >
-            Sign up
+            {t(labels.signup)}
           </FormSubmitButton>
         </FormButtons>
       </Form>
 
       <Column gap="3" alignItems="center">
         <Row gap="1">
-          <Text size="base" style={{ color: '#111827' }}>Already have an account?</Text>
+          <Text size="base" style={{ color: '#111827' }}>{t(labels.alreadyHaveAccount)}</Text>
           <Link href="/login" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
             <Text weight="bold" size="base">
-              Log in
+              {t(labels.login)}
             </Text>
           </Link>
         </Row>
@@ -97,7 +97,7 @@ export function SignupForm() {
           style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
         >
           <Text weight="bold" size="base">
-            Looking to self-host? See docs
+            {t(labels.selfHostDocs)}
           </Text>
         </Link>
       </Column>
