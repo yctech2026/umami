@@ -5,6 +5,8 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
 import { drizzle as drizzleLibsql } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
+// 注意：不用 React.cache()，因为 workerd 运行时无 React 组件上下文。
+// 直接每次调用获取新客户端，getCloudflareContext() 由 OpenNext 自动 memo 化。
 import debug from 'debug';
 import { getBoolEnv, getEnv, getEnvString } from '@/lib/env';
 import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS, SESSION_COLUMNS } from './constants';
@@ -15,12 +17,14 @@ const log = debug('umami:prisma');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 第一部分：Drizzle Client 基础设施（原 drizzle-client.ts）
+// ── 每请求（workerd）或单例（dev）的客户端工厂 ──
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type DrizzleClient = ReturnType<typeof drizzleD1> | ReturnType<typeof drizzleLibsql>;
 
-let cachedClient: DrizzleClient | null = null;
-let cachedRawDB: any = null; // raw D1 binding or D1-compatible wrapper
+// Node.js 本地开发模式的单例（无请求复用问题）
+let _devRawDB: any = null;
+let _devDrizzleClient: DrizzleClient | null = null;
 
 function isWorkerdRuntime(): boolean {
   return typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
@@ -66,59 +70,97 @@ function createD1WrapperFromLibsql(libsqlClient: any): any {
   };
 }
 
-export async function getDrizzleClient(): Promise<DrizzleClient> {
-  if (cachedClient) return cachedClient;
-  const raw = await getRawDB();
-  // Infer which drizzle driver to use based on the raw binding type
-  if (typeof raw?.prepare === 'function' && raw?.constructor?.name !== 'Object') {
-    // D1 binding
-    cachedClient = drizzleD1(raw, { schema });
-  } else {
-    // libsql client
-    cachedClient = drizzleLibsql(raw, { schema });
+// ── 每请求 Raw DB 工厂（workerd） ────────────────────────────────────
+//
+// 在 workerd 运行时：每次调用获取新的 D1 binding。
+// getCloudflareContext() 由 OpenNext 内部 memo 化，多次调用代价低。
+// drizzleD1() 是轻量包装，频繁创建无性能问题。
+//
+// 关键：不在 workerd 中做任何模块级缓存（防止跨请求 Promise hanging）。
+//
+// 在 Node.js 本地开发：使用单例（无请求复用问题）
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * 获取 D1 binding 或 libsql raw client（每请求新鲜获取）
+ * workerd 中无缓存，每次返回新包装（避免跨请求状态泄漏）
+ */
+function getRawDBForRequest(): any {
+  if (isWorkerdRuntime()) {
+    return _getWorkerdRawDB();
   }
-  return cachedClient!;
+  return _getDevRawDB();
 }
 
-export async function getRawDB(): Promise<any> {
-  if (cachedRawDB) return cachedRawDB;
-
+/** workerd 环境：每次新鲜获取 D1 binding */
+function _getWorkerdRawDB(): any {
   // 1) 生产环境：通过 getCloudflareContext 获取 D1 binding
   try {
     const cloudflareContext = getCloudflareContext({ async: false });
     if ((cloudflareContext.env as any)?.DB) {
       const rawDB = (cloudflareContext.env as any).DB;
-      cachedRawDB = wrapD1WithRetry(rawDB);
-      console.log('[drizzle] Using D1 via getCloudflareContext');
-      return cachedRawDB;
+      console.log('[drizzle] Using D1 via getCloudflareContext (per-request)');
+      return wrapD1WithRetry(rawDB);
     }
   } catch {
-    // 开发环境不可用
+    // fall through
   }
 
   // 2) 备用：globalThis.__D1_DB__ (wrangler dev)
   if (typeof globalThis.__D1_DB__ !== 'undefined') {
-    cachedRawDB = globalThis.__D1_DB__;
     console.log('[drizzle] Using D1 via __D1_DB__');
-    return cachedRawDB;
-  }
-
-  // 3) 本地开发：libsql SQLite
-  if (!isWorkerdRuntime()) {
-    const libsql = createClient({ url: 'file:./drizzle/dev.db' });
-    cachedRawDB = createD1WrapperFromLibsql(libsql);
-    console.log('[drizzle] Using libsql SQLite (local dev)');
-    return cachedRawDB;
+    return globalThis.__D1_DB__;
   }
 
   throw new Error('[drizzle] No database backend available on workerd runtime');
 }
 
-export async function getD1Binding(): Promise<any> {
-  return getRawDB();
+/** Node.js 开发环境：单例 libsql client */
+function _getDevRawDB(): any {
+  if (!_devRawDB) {
+    const libsql = createClient({ url: 'file:./drizzle/dev.db' });
+    _devRawDB = createD1WrapperFromLibsql(libsql);
+    console.log('[drizzle] Using libsql SQLite (local dev)');
+  }
+  return _devRawDB;
 }
 
-// 新增：D1 重试包装函数
+/**
+ * 获取 Drizzle 客户端（每请求新鲜创建）
+ * workerd 中每次调用创建新实例（drizzleD1 是轻量包装，无额外开销）
+ */
+export function getDrizzleClient(): DrizzleClient {
+  if (isWorkerdRuntime()) {
+    const raw = getRawDBForRequest();
+    return drizzleD1(raw, { schema });
+  }
+  return _getDevDrizzleClient();
+}
+
+function _getDevDrizzleClient(): DrizzleClient {
+  if (!_devDrizzleClient) {
+    _devDrizzleClient = drizzleLibsql(getRawDBForRequest(), { schema });
+  }
+  return _devDrizzleClient;
+}
+
+/**
+ * 获取 D1 binding（别名，保持兼容）
+ */
+export function getD1Binding(): any {
+  return getRawDBForRequest();
+}
+
+/**
+ * 获取 Raw DB（别名，保持兼容 — 旧版异步 export 签名）
+ */
+export function getRawDB(): any {
+  return getRawDBForRequest();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// D1 重试包装函数
+// ═══════════════════════════════════════════════════════════════════════════════
 function wrapD1WithRetry(db: any): any {
   const RETRYABLE_ERRORS = [
     'Network connection lost',
@@ -661,142 +703,51 @@ function getSchema() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 第四部分：客户端单例与惰性 Proxy（原 prisma.ts）
+// 第四部分：每请求惰性客户端 Proxy（原 prisma.ts）
 // ═══════════════════════════════════════════════════════════════════════════════
-
-let _cachedClient: DrizzleClient | null = null;
-let _clientPromise: Promise<DrizzleClient> | null = null;
-
-/**
- * 异步获取 Drizzle 客户端（首次调用时惰性初始化）
- * 完全异步，不依赖同步 getCloudflareContext
- */
-export async function getClient(): Promise<DrizzleClient> {
-  if (_cachedClient) return _cachedClient;
-
-  if (!_clientPromise) {
-    _clientPromise = getDrizzleClient().then((c) => {
-      _cachedClient = c;
-      log('Drizzle client initialized (async)');
-      return c;
-    });
-  }
-
-  return _clientPromise;
-}
-
-// ─── 链感知的延迟代理 ────────────────────────────────────────────────────
 //
-// 原理：记录方法调用链（如 select → from → where → get），在客户端就绪后「回放」
-// 场景 A — 客户端已就绪：直接回放调用链，返回真实 Drizzle 对象（同步）
-// 场景 B — 客户端未就绪：通过 Promise 链逐步解析（await 时自动等待）
+// 原理：每个方法调用（如 .select(), .$count(), .insert()）都获取
+// 当前请求的新 Drizzle 客户端（通过 getDrizzleClient()），并将调用委
+// 托给该客户端。链式调用（如 .select().from().where()）在首次
+// .select() 获取真实查询构建器后，后续链式调用在真实的 Drizzle 查询
+// 构建器对象上自然进行，无需代理介入。
 //
-// 这解决了 Cloudflare Worker 中无法同步调用 getCloudflareContext({ async: false }) 的问题
+// workerd 中 getCloudflareContext() 由 OpenNext 内部 memo 化，
+// 每次请求内多次调用开销极低。Node.js 开发模式使用单例 libsql 客户端。
 // ─────────────────────────────────────────────────────────────────────────
 
-type ChainCall = { prop: PropertyKey; args: any[] };
-
 /**
- * 如果客户端已就绪，回放调用链获取真实对象
- */
-function replayChain(calls: ChainCall[]): any {
-  if (!_cachedClient) return undefined;
-
-  let result: any = _cachedClient;
-  for (const { prop, args } of calls) {
-    if (result && typeof result[prop] === 'function') {
-      result = result[prop](...args);
-    } else {
-      return undefined;
-    }
-  }
-  return result;
-}
-
-/**
- * 构建 Promise 链（客户端未就绪时使用）
- */
-function buildPromiseChain(calls: ChainCall[]): Promise<any> {
-  let promise = _clientPromise!;
-  for (const { prop, args } of calls) {
-    promise = promise.then((target: any) => {
-      if (target && typeof target[prop] === 'function') {
-        return target[prop](...args);
-      }
-      return undefined;
-    });
-  }
-  return promise;
-}
-
-/**
- * 创建一个链节点 Proxy，记录调用链
- */
-function createChainNode(calls: ChainCall[]): any {
-  return new Proxy(function () {}, {
-    get(_, prop) {
-      // ── 尝试同步回放（客户端已就绪时） ──
-      if (_cachedClient) {
-        const resolved = replayChain(calls);
-        if (resolved !== undefined) {
-          const value = Reflect.get(resolved, prop, resolved);
-          if (typeof value === 'function') {
-            return (...args: any[]) => value.apply(resolved, args);
-          }
-          return value;
-        }
-      }
-
-      // ── 终端属性：Promise 协议（await / .then / .catch） ──
-      if (prop === 'then' || prop === 'catch' || prop === 'finally') {
-        const promise = buildPromiseChain(calls);
-        return promise[prop].bind(promise);
-      }
-
-      // ── 继续链式调用 ──
-      return (...args: any[]) => {
-        const newCalls = [...calls, { prop, args }];
-        return createChainNode(newCalls);
-      };
-    },
-
-    apply(_, __, args) {
-      const newCalls = [...calls, { prop: undefined, args }];
-      return createChainNode(newCalls);
-    },
-  });
-}
-
-/**
- * 惰性 Proxy 客户端
+ * 每请求惰性 Proxy 客户端
  *
- * - 首次访问属性时触发异步初始化（不会同步抛错）
- * - 初始化完成前：返回链节点 Proxy，记录调用链
- * - 初始化完成后：直接透传到底层 DrizzleClient
- * - 支持链式调用：.select().from().where().get()
- * - 支持事务：.insert().values() → .toSQL()
- * - 支持 await：终端调用自动转为 Promise
+ * 每次方法调用（如 .select(), .$count(), .insert()）通过
+ * getDrizzleClient() 获取当前请求的新 Drizzle 客户端，
+ * 并将调用委托给该客户端。
+ *
+ * - 首次方法调用（如 .select()）获取新鲜客户端并调用对应方法
+ * - 返回的真实查询构建器可自然链式调用（.from().where().get()）
+ * - 直接方法（如 .$count()）直接返回 Promise 结果
+ * - 无需链记录与回放逻辑，大幅简化
  */
 const client = new Proxy({} as DrizzleClient, {
-  get(_, prop) {
-    // ── 客户端已就绪：直接透传 ──
-    if (_cachedClient) {
-      const value = Reflect.get(_cachedClient!, prop, _cachedClient!);
-      return typeof value === 'function' ? value.bind(_cachedClient) : value;
-    }
-
-    // ── 触发异步初始化（仅首次） ──
-    if (!_clientPromise) {
-      _clientPromise = getClient().then((c) => {
-        _cachedClient = c;
-        return c;
-      });
-    }
-
-    // ── 返回延迟链节点 ──
-    return (...args: any[]) => createChainNode([{ prop, args }]);
+  get(_target, prop) {
+    return (...args: any[]) => {
+      const db = getDrizzleClient();
+      const value = (db as any)[prop];
+      if (typeof value === 'function') {
+        return value.apply(db, args);
+      }
+      return value;
+    };
   },
 });
+
+/**
+ * getClient — 保留导出兼容性
+ * 现在直接返回 getDrizzleClient()，避免跨请求缓存
+ */
+export function getClient(): DrizzleClient {
+  return getDrizzleClient();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 第五部分：导出（原 prisma.ts default export）
