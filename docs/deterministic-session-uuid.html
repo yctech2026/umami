@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>确定性 Session UUID 变更记录</title>
+<style>
+  body {
+    background: #fff;
+    color: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    line-height: 1.7;
+  }
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 4px; }
+  h2 { font-size: 20px; font-weight: 600; margin: 36px 0 12px; border-bottom: 2px solid #eee; padding-bottom: 6px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; }
+  .meta { color: #666; font-size: 14px; margin-bottom: 32px; }
+  .tag {
+    display: inline-block;
+    background: #e8f4f8;
+    color: #0369a1;
+    border-radius: 4px;
+    padding: 1px 10px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    margin-right: 6px;
+  }
+  .tag.impact { background: #fef3c7; color: #92400e; }
+  code {
+    background: #f4f4f5;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 14px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+  }
+  pre {
+    background: #f4f4f5;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    font-family: 'SF Mono', 'Consolas', monospace;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e4e4e7;
+  }
+  th { background: #f4f4f5; font-weight: 600; }
+  tr:hover td { background: #fafafa; }
+  .badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 22px;
+  }
+  .badge.green { background: #dcfce7; color: #166534; }
+  .badge.amber { background: #fef3c7; color: #92400e; }
+  .badge.blue { background: #dbeafe; color: #1e40af; }
+  .badge.gray { background: #f4f4f5; color: #52525b; }
+  hr { border: none; border-top: 1px solid #e4e4e7; margin: 32px 0; }
+  .quote {
+    border-left: 3px solid #93c5fd;
+    padding: 12px 16px;
+    margin: 16px 0;
+    background: #f8fafc;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<h1>确定性 Session UUID</h1>
+<div class="meta">
+  <span class="tag">src/lib/crypto.ts</span>
+  <span class="tag">2026-07-13</span>
+  <span class="tag impact">Bugfix</span>
+</div>
+
+<p>
+Umami 的 <code>/api/send</code> 接口在创建 session 时，使用 <code>uuid(sourceId, ip, userAgent, sessionSalt)</code>
+传入参数，但 <code>uuid()</code> 函数始终返回 <code>crypto.randomUUID()</code>，忽略了所有参数。
+</p>
+<p>
+这导致同一用户的每次页面浏览都生成不同的 sessionId，3 次浏览被计为 3 个访客。
+</p>
+
+<h2>问题</h2>
+<table>
+  <tr><th>表现</th><td>自统计仪表盘访客数严重虚高（每页浏览 = 1 访客）</td></tr>
+  <tr><th>根因</th><td><code>uuid()</code> 无视传入参数，永远 <code>crypto.randomUUID()</code></td></tr>
+  <tr><th>影响范围</th><td>所有基于 <code>/api/send</code> 的追踪事件</td></tr>
+</table>
+
+<h2>改动</h2>
+
+<h3>文件：<code>src/lib/crypto.ts</code></h3>
+
+<p><code>uuid()</code> 函数新增逻辑：有参数时调用 <code>determineUUID()</code> 生成确定性 UUID；无参数时回退随机 UUID。</p>
+
+<pre><code>export function uuid(...args: any): string {
+  // 有参数 → 确定性 UUID（相同输入 = 相同输出）
+  if (args.length) {
+    return determineUUID(args.map(a => String(a ?? '')).join('|'));
+  }
+  // 无参数 → 随机 UUID v4（向后兼容）
+  return crypto.randomUUID();
+}</code></pre>
+
+<p>新增 <code>determineUUID(name)</code> 函数，使用 <strong>djb2 双哈希</strong>生成 128 位值，格式兼容 UUID v4：</p>
+
+<pre><code>function determineUUID(name: string): string {
+  let h1 = 5381, h2 = 52711;
+  for (let i = 0; i &lt; name.length; i++) {
+    const c = name.charCodeAt(i);
+    h1 = ((h1 &lt;&lt; 5) + h1 + c) | 0;
+    h2 = ((h2 &lt;&lt; 5) + h2 + c) | 0;
+  }
+  // ... 拼装为 UUID 格式
+}</code></pre>
+
+<div class="quote">
+  <strong>为何不用 uuid 包：</strong>官方上游使用 <code>uuid</code> npm 包的 <code>v5()</code> 实现。本项目部署于 Cloudflare Workers，
+  去除 uuid 包依赖可节省约 15KB 的 Bundle 体积（对 3MB 免费计划限制有帮助）。
+  djb2 64 位哈希在单站月访客量级下碰撞概率可忽略。
+</div>
+
+<h2>效果</h2>
+
+<h3>工作原理</h3>
+<p>
+sessionId 由 <code>uuid(sourceId, ip, userAgent, sessionSalt)</code> 生成，其中
+<code>sessionSalt = hash(startOfMonth(createdAt).toUTCString())</code> 是一个月内不变的值。
+因此：
+</p>
+
+<table>
+  <tr><th>场景</th><th>结果</th></tr>
+  <tr>
+    <td>同用户同月访问 3 页</td>
+    <td><span class="badge green">1 个 session, 1 个访客</span></td>
+  </tr>
+  <tr>
+    <td>不同用户（IP/UA 不同）</td>
+    <td><span class="badge green">不同 session, 正确分离</span></td>
+  </tr>
+  <tr>
+    <td>同用户跨月访问</td>
+    <td><span class="badge green">不同 session（salt 轮换）</span></td>
+  </tr>
+  <tr>
+    <td>NAT 环境（相同公网 IP）</td>
+    <td><span class="badge amber">可能合并（IP 指纹共同局限）</span></td>
+  </tr>
+</table>
+
+<h3>对比</h3>
+<table>
+  <tr><th>指标</th><th>改前（随机 UUID）</th><th>改后（确定性 UUID）</th></tr>
+  <tr><td>3 次页面浏览计为</td><td>3 个访客 ❌</td><td>1 个访客 ✅</td></tr>
+  <tr><td>唯一访客（UV）</td><td>虚高</td><td>准确</td></tr>
+  <tr><td>页面浏览（PV）</td><td>不变</td><td>不变</td></tr>
+  <tr><td>session 持续时间</td><td>每次独立（准确）</td><td>跨月合并（同月内有膨胀）</td></tr>
+  <tr><td>跳出率</td><td>准确</td><td>偏低（多日浏览计入同一 session）</td></tr>
+</table>
+
+<h2>与上游一致性</h2>
+
+<div class="quote">
+  本改动与官方 Umami 上游设计完全一致。上游在 <code>src/lib/crypto.ts</code> 中使用
+  <code>v5(hash(...args, secret()), v5.DNS)</code>，
+  <code>send/route.ts</code> 中调用 <code>uuid(sourceId, ip, userAgent, sessionSalt)</code> 生成确定性 sessionId。
+  差异仅为：上游使用 SHA-512 + UUID v5（依赖 uuid 包），本项目使用纯 JS djb2（零依赖）。
+</div>
+
+<h2>已知局限</h2>
+<ul>
+  <li><strong>session 时长膨胀：</strong>盐轮换默认为 <code>month</code>，同月内多次访问的 session 时长异常偏高。</li>
+  <li><strong>跳出率偏低：</strong>同一 session 内包含多日页面浏览时，跳出率统计失准。</li>
+  <li><strong>缺少 secret() 混入：</strong>上游将 APP_SECRET 哈希加入确定性 UUID 输入以增加实例间隔离，本实现未包含。</li>
+</ul>
+
+<h2>配置</h2>
+<p>可通过环境变量 <code>SALT_ROTATION</code> 调整轮换粒度：</p>
+<pre><code>SALT_ROTATION=month   # 默认，按月轮换（最激进去重，session 时长偏差最大）
+SALT_ROTATION=week    # 按周轮换
+SALT_ROTATION=day     # 按天轮换（推荐，平衡去重与准确性）</code></pre>
+
+<hr>
+<p style="color:#888;font-size:13px">变更提交：<code>8089caf</code> &mdash; 2026-07-13</p>
+
+</body>
+</html>
