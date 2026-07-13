@@ -5,10 +5,12 @@ import { getDateLocale, getTextDirection } from '@/lib/lang';
 import { setItem } from '@/lib/storage';
 import { setLocale, useApp } from '@/store/app';
 import enUS from '../../../public/intl/messages/en-US.json';
+import zhCN from '../../../public/intl/messages/zh-CN.json';
 import { useForceUpdate } from './useForceUpdate';
 
-const messages = {
+const messages: Record<string, any> = {
   'en-US': enUS,
+  'zh-CN': zhCN,
 };
 
 const selector = (state: { locale: string }) => state.locale;
@@ -31,6 +33,8 @@ export function useLocale() {
     }
 
     setItem(LOCALE_CONFIG, value);
+    // 同步更新 cookie，使服务端下次渲染与客户端一致
+    document.cookie = `NEXT_LOCALE=${value};path=/;sameSite=lax;max-age=${60 * 60 * 24 * 365}`;
 
     document.getElementById('__next')?.setAttribute('dir', getTextDirection(value));
 

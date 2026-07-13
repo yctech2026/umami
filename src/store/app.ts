@@ -11,8 +11,17 @@ import {
 import { getTimezone } from '@/lib/date';
 import { getItem } from '@/lib/storage';
 
+function getInitialLocale() {
+  // 优先使用 cookie（与服务端一致），避免水合不匹配
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]*)/);
+    if (match) return match[1];
+  }
+  return getItem(LOCALE_CONFIG) || process.env.defaultLocale || DEFAULT_LOCALE;
+}
+
 const initialState = {
-  locale: getItem(LOCALE_CONFIG) || process.env.defaultLocale || DEFAULT_LOCALE,
+  locale: getInitialLocale(),
   theme: getItem(THEME_CONFIG) || DEFAULT_THEME,
   timezone: getItem(TIMEZONE_CONFIG) || getTimezone(),
   dateRangeValue: getItem(DATE_RANGE_CONFIG) || DEFAULT_DATE_RANGE_VALUE,
