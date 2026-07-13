@@ -243,7 +243,49 @@ export async function secret(): Promise<string> {
 }
 
 export function uuid(...args: any): string {
+  // 有参数时生成确定性 UUID（用于 session_id / visit_id 去重）
+  if (args.length) {
+    return determineUUID(args.map(a => String(a ?? '')).join('|'));
+  }
+
+  // 无参数时生成随机 UUID v4
   return crypto.randomUUID();
+}
+
+/**
+ * 确定性 UUID（基于 djb2 哈希，纯 JS，浏览器/Worker 通用）
+ * 格式为 RFC 4122 兼容的虚假 UUID v4（相同输入 → 相同输出）
+ */
+function determineUUID(name: string): string {
+  // djb2 哈希 → 64 位
+  let h1 = 5381;
+  let h2 = 52711;
+  for (let i = 0; i < name.length; i++) {
+    const c = name.charCodeAt(i);
+    h1 = ((h1 << 5) + h1 + c) | 0;
+    h2 = ((h2 << 5) + h2 + c) | 0;
+  }
+
+  const bytes = new Uint8Array(16);
+  bytes[0] = (h1 >> 24) & 0xff;
+  bytes[1] = (h1 >> 16) & 0xff;
+  bytes[2] = (h1 >> 8) & 0xff;
+  bytes[3] = h1 & 0xff;
+  bytes[4] = (h1 >> 24) & 0xff ^ bytes[0];
+  bytes[5] = (h1 >> 16) & 0xff ^ bytes[1];
+  bytes[6] = ((h1 >> 8) & 0x0f) | 0x40; // version 4
+  bytes[7] = h1 & 0xff ^ bytes[3];
+  bytes[8] = (h2 >> 24) & 0xff;
+  bytes[9] = (h2 >> 16) & 0xff;
+  bytes[10] = (h2 >> 8) & 0xff;
+  bytes[11] = h2 & 0xff;
+  bytes[12] = (h2 >> 24) & 0xff ^ bytes[8];
+  bytes[13] = (h2 >> 16) & 0xff ^ bytes[9];
+  bytes[14] = ((h2 >> 8) & 0x3f) | 0x80; // variant
+  bytes[15] = h2 & 0xff ^ bytes[11];
+
+  const hex = bytesToHex(bytes);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export function createAuthKey(): string {
