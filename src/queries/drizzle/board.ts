@@ -5,11 +5,8 @@ import type { QueryFilters } from '@/lib/types';
 import { getDrizzleClient } from '@/lib/db';
 const DEFAULT_PAGE_SIZE = 50;
 
-let _db: any;
-
-async function getDb(): Promise<any> {
-  if (!_db) _db = await getDrizzleClient();
-  return _db;
+function getDb(): any {
+  return getDrizzleClient();
 }
 
 export async function findBoard(criteria: Record<string, any>) {

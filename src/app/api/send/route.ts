@@ -98,6 +98,8 @@ export async function POST(request: Request) {
 
     const sourceId = websiteId || pixelId || linkId;
 
+    console.log('[send] 1 - sourceId:', sourceId);
+
     // Cache check
     let cache: Cache | null = null;
 
@@ -114,7 +116,10 @@ export async function POST(request: Request) {
 
       // Find website
       if (!cache?.websiteId) {
+        console.log('[send] 2 - fetching website');
         const website = await fetchWebsite(websiteId);
+
+        console.log('[send] 3 - fetchWebsite done');
 
         if (!website) {
           return badRequest({ message: 'Website not found.' });
@@ -122,11 +127,18 @@ export async function POST(request: Request) {
       }
     }
 
+    console.log('[send] 4 - after website check');
+
     // Client info
-    const { ip, userAgent, device, browser, os, country, region, city } = await getClientInfo(
+    console.log('[send] 5 - before getClientInfo');
+    const clientInfoResult = await getClientInfo(
       request,
       payload,
     );
+    console.log('[send] 6 - after getClientInfo');
+
+    const { ip, userAgent, device, browser, os, country, region, city } = clientInfoResult;
+    console.log('[send] 7 - destructured clientInfo');
 
     // Bot check
     if (!getBoolEnv('DISABLE_BOT_CHECK') && isbot(userAgent)) {
@@ -148,7 +160,9 @@ export async function POST(request: Request) {
     const sessionId = id ? uuid(sourceId, id) : uuid(sourceId, ip, userAgent, sessionSalt);
 
     // Create a session if not found
+    console.log('[send] 8 - before session check, clickhouse.enabled:', clickhouse.enabled, 'cache?.sessionId:', cache?.sessionId);
     if (!clickhouse.enabled && !cache?.sessionId) {
+      console.log('[send] 9 - before createSession');
       await createSession({
         id: sessionId,
         websiteId: sourceId,
@@ -163,6 +177,9 @@ export async function POST(request: Request) {
         distinctId: id,
         createdAt,
       });
+      console.log('[send] 10 - after createSession');
+    } else {
+      console.log('[send] 10b - skipped createSession');
     }
 
     // Visit info
