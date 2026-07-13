@@ -21,8 +21,7 @@ const forceSSL = process.env.FORCE_SSL || '';
 const frameAncestors = process.env.ALLOWED_FRAME_URLS || '';
 const trackerScriptName = process.env.TRACKER_SCRIPT_NAME || '';
 const trackerScriptURL = process.env.TRACKER_SCRIPT_URL || '';
-const selfTrack = process.env.UMAMI_SELF_TRACK || '';
-const selfRecord = process.env.UMAMI_SELF_RECORD || '';
+// selfTrack/selfRecord 改为运行时通过 /api/config 读取（CF Workers runtime vars）
 
 const contentSecurityPolicy = `
   default-src 'self';
@@ -196,8 +195,6 @@ export default withNextIntl({
     currentVersion: pkg.version,
     defaultCurrency,
     defaultLocale,
-    selfTrack,
-    selfRecord,
   },
   basePath,
   output: isProd ? 'standalone' : undefined,

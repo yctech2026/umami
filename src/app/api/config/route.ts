@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     telemetryDisabled: getBoolEnv('DISABLE_TELEMETRY'),
     trackerScriptName: getEnv('TRACKER_SCRIPT_NAME', ''),
     updatesDisabled: getBoolEnv('DISABLE_UPDATES'),
+    selfTrack: getEnv('UMAMI_SELF_TRACK', ''),
+    selfRecord: getEnv('UMAMI_SELF_RECORD', ''),
     currentVersion: CURRENT_VERSION,
   });
 }
