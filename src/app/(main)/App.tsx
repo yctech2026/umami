@@ -70,19 +70,19 @@ export function App({ children }) {
       {process.env.NODE_ENV === 'production' && !pathname.includes('/share/') && (
         <Script src={`${process.env.basePath || ''}/telemetry.js`} />
       )}
-      {process.env.selfTrack && (
+      {config?.selfTrack && (
         <Script
           async
-          data-website-id={process.env.selfTrack}
+          data-website-id={config.selfTrack}
           src={`${process.env.basePath || ''}/script.js`}
           data-cache="true"
           data-performance="true"
         />
       )}
-      {process.env.selfRecord && (
+      {config?.selfRecord && (
         <Script
           async
-          data-website-id={process.env.selfRecord}
+          data-website-id={config.selfRecord}
           data-sample-rate="1"
           src={`${process.env.basePath || ''}/recorder.js`}
         />
